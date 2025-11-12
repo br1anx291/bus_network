@@ -1,56 +1,91 @@
 // src/components/Dashboard/StatCardsGroup.jsx
 import React from 'react';
-import { Card, Col, Row, Statistic } from 'antd';
-// Import các Icon mà CHÚNG TA sẽ "vẽ"
+import { Card, Col, Row } from 'antd';
 import {
   CarOutlined,
   UserOutlined,
   WarningOutlined,
   BellOutlined,
 } from '@ant-design/icons';
-// Import data (giờ đã "sạch")
 import { statsData } from '../../data/dashboardMockData';
 
-// ----- THÊM MỚI Ở ĐÂY -----
-// Hàm "Helper" để "vẽ" icon dựa trên chuỗi
-// và gán màu sắc tương ứng
-const renderIcon = (iconName, itemBgColor) => {
-  // Định nghĩa màu sắc ở đây, tách biệt khỏi data
-  const style = {
-    CarOutlined: { color: '#FFC107' },
-    UserOutlined: { color: '#1890FF' },
-    WarningOutlined: { color: '#D32F2F' },
-    BellOutlined: { color: '#52C41A' },
-  };
-
-  switch (iconName) {
-    case 'CarOutlined':
-      return <CarOutlined style={style.CarOutlined} />;
-    case 'UserOutlined':
-      return <UserOutlined style={style.UserOutlined} />;
-    case 'WarningOutlined':
-      return <WarningOutlined style={style.WarningOutlined} />;
-    case 'BellOutlined':
-      return <BellOutlined style={style.BellOutlined} />;
-    default:
-      return null;
-  }
+const iconMap = {
+  CarOutlined: <CarOutlined />,
+  UserOutlined: <UserOutlined />,
+  WarningOutlined: <WarningOutlined />,
+  BellOutlined: <BellOutlined />,
 };
-// ----- KẾT THÚC THÊM MỚI -----
 
 const StatCardsGroup = () => {
   return (
-    <Row gutter={16}>
+    <Row gutter={[16, 16]}>
       {statsData.map((item, index) => (
-        <Col span={6} key={index}>
-          <Card style={{ backgroundColor: item.bgColor }} bordered={false}>
-            <Statistic
-              title={item.title}
-              value={item.value}
-              // Gọi hàm helper để "vẽ" icon
-              prefix={renderIcon(item.icon)}
-              valueStyle={{ fontWeight: 'bold', fontSize: '24px' }}
-            />
+        <Col xs={24} sm={12} md={8} lg={6} key={index}>
+          <Card
+            bordered={false}
+            style={{
+              boxShadow: '0 4px 5px rgba(0, 0, 0, 0.25)',
+              borderRadius: '16px',
+              padding: '20px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'flex-start',
+                justifyContent: 'space-between',
+              }}
+            >
+              {/* --- BÊN TRÁI: ICON TRONG HÌNH TRÒN --- */}
+              <div
+                style={{
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(255, 216, 0, 0.2)', // vàng nhạt sữa tươi
+
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  justifyContent: 'center',
+                  flexShrink: 0,
+                }}
+              >
+                <span style={{ fontSize: '28px', color: '#000' }}>
+                  {iconMap[item.icon]}
+                </span>
+              </div>
+
+              {/* --- BÊN PHẢI: CHỮ --- */}
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  marginLeft: '18px',
+                  flex: 1,
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: '26px',
+                    fontWeight: 'bold',
+                    color: '#000',
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {item.value}
+                </div>
+                <div
+                  style={{
+                    fontSize: '14px',
+                    color: '#555',
+                    marginTop: '4px',
+                  }}
+                >
+                  {item.title}
+                </div>
+              </div>
+            </div>
           </Card>
         </Col>
       ))}
@@ -59,3 +94,4 @@ const StatCardsGroup = () => {
 };
 
 export default StatCardsGroup;
+  

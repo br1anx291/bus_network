@@ -3,28 +3,45 @@ import MainLayout from './layouts/MainLayout';
 import DashboardPage from './pages/DashboardPage';
 import MapPage from './pages/MapPage';
 import IncidentPage from './pages/IncidentPage';
-// (Sau này bạn sẽ import các trang khác ở đây)
+import OperationPage from './pages/OperationPage';
+import AnalyzePage from './pages/AnalyzePage';
+import ManagementPage from './pages/ManagementPage';
+import SettingPage from './pages/SettingPage';
 
 export const router = createBrowserRouter([
   {
-    // Đây là layout chung (có Sidebar + Header)
     path: '/',
     element: <MainLayout />,
     children: [
-      // Khi người dùng vào trang chủ '/', hiển thị DashboardPage
       {
-        index: true, // index: true nghĩa là trang mặc định
+        index: true,
         element: <DashboardPage />,
       },
-      // Khi người dùng vào '/ban-do', hiển thị MapPage
       {
         path: 'ban-do',
         element: <MapPage />,
       },
       {
+        path: 'van-hanh',
+        element: <OperationPage />,
+      },
+      {
         path: 'su-co',
         element: <IncidentPage />,
-      }
+      },
+      {
+        path: 'phan-tich',
+        element: < AnalyzePage/>,
+      },
+      {
+        path: 'quan-ly',
+        element: <ManagementPage />,
+      },
+      {
+        path: 'cai-dat',
+        element: <SettingPage />,
+      },
+
     //   {
     //     path: 'su-co',
     //     element: <IncidentPage />,

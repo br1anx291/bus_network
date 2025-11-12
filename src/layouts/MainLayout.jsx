@@ -61,7 +61,6 @@ const userMenuItems = [
   { key: '3', label: 'Đăng xuất', danger: true },
 ];
 
-// --- COMPONENT LAYOUT (ĐÃ TÁI CẤU TRÚC) ---
 const MainLayout = () => {
   const navigate = useNavigate();
   const handleMenuClick = (e) => {
@@ -73,7 +72,6 @@ const MainLayout = () => {
 
   return (
     <Layout className={styles.layoutRoot}>
-      {/* ----- SIDEBAR (ĐÃ TÁI CẤU TRÚC) ----- */}
       <Sider
         width={240}
         className={styles.sidebar} // CSS module sẽ lo `justify-content`
@@ -86,7 +84,7 @@ const MainLayout = () => {
 
           <div className={styles.menuTitle}>DANH MỤC</div>
           <Menu
-            onClick={handleMenuClick}
+            onClick={handleMenuClick} 
             defaultSelectedKeys={['/']}
             mode="inline"
             theme="light"
@@ -106,8 +104,7 @@ const MainLayout = () => {
             className={styles.sidebarMenu}
           />
         </div>
-        
-        {/* 6. Xóa <Button> "Đăng xuất" ở đây */}
+
         
       </Sider>
 

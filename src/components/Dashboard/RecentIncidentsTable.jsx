@@ -1,12 +1,14 @@
 // src/components/Dashboard/RecentIncidentsTable.jsx
 import React from 'react';
-import { Card, Table, Tag } from 'antd';
-// ----- ĐẢM BẢO BẠN CÓ DÒNG NÀY -----
+// 1. Thêm Typography vào import
+import { Card, Table, Tag, Typography } from 'antd';
 import { WarningOutlined, BellOutlined } from '@ant-design/icons';
-// ----- KẾT THÚC -----
 import { tableData } from '../../data/dashboardMockData'; 
 
-// Config cột
+// 2. Lấy Title ra
+const { Title } = Typography;
+
+// (Phần config cột tableColumns giữ nguyên như cũ, tôi ẩn đi cho gọn)
 const tableColumns = [
   {
     title: 'LOẠI',
@@ -16,28 +18,14 @@ const tableColumns = [
       const isIncident = type === 'Sự cố';
       return (
         <span style={{ color: isIncident ? '#D32F2F' : '#1890FF' }}>
-          {/* Code này chạy được VÌ chúng ta đã import 2 icon ở trên */}
           {isIncident ? <WarningOutlined /> : <BellOutlined />} {type}
         </span>
       );
     },
   },
-  // ... (các cột khác giữ nguyên) ...
-  {
-    title: 'CHI TIẾT',
-    dataIndex: 'details',
-    key: 'details',
-  },
-  {
-    title: 'TÀI XẾ',
-    dataIndex: 'driver',
-    key: 'driver',
-  },
-  {
-    title: 'THỜI GIAN',
-    dataIndex: 'time',
-    key: 'time',
-  },
+  { title: 'CHI TIẾT', dataIndex: 'details', key: 'details' },
+  { title: 'TÀI XẾ', dataIndex: 'driver', key: 'driver' },
+  { title: 'THỜI GIAN', dataIndex: 'time', key: 'time' },
   {
     title: 'TRẠNG THÁI',
     dataIndex: 'status',
@@ -54,7 +42,14 @@ const tableColumns = [
 
 const RecentIncidentsTable = () => {
   return (
-    <Card title="Sự cố & Yêu cầu gần đây">
+    <Card 
+      // 3. Sửa title dùng Typography level 4
+      title={
+        <Title level={4} style={{ margin: 0 }}>
+          Sự cố & Yêu cầu gần đây
+        </Title>
+      }
+    >
       <Table
         columns={tableColumns}
         dataSource={tableData}

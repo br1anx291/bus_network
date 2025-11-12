@@ -1,21 +1,18 @@
 // src/pages/DashboardPage.jsx
 import React from 'react';
-// 1. IMPORT THÊM "Typography" TỪ ANTD
-import { Col, Row, Flex, Card, Typography } from 'antd';
+import { Col, Row, Flex, Typography } from 'antd'; // Bỏ import Card thừa ở đây
 
-// Import 3 component con
 import StatCardsGroup from '../components/Dashboard/StatCardsGroup';
 import VehicleStatusPieChart from '../components/Dashboard/VehicleStatusPieChart';
 import RecentIncidentsTable from '../components/Dashboard/RecentIncidentsTable';
+import OnlineVehiclesMap from '../components/Dashboard/OnlineVehiclesMap';
 
-// 2. LẤY COMPONENT "Title" RA
 const { Title } = Typography;
 
 const DashboardPage = () => {
   return (
     <Flex vertical gap="large">
-      {/* 3. THÊM TIÊU ĐỀ "TỔNG QUAN" Ở ĐÂY */}
-      <Title level={3} style={{ margin: 0,  }}>
+      <Title level={3} style={{ margin: 0 }}>
         Tổng quan
       </Title>
 
@@ -25,21 +22,7 @@ const DashboardPage = () => {
       {/* ----- 2. CỤM BẢN ĐỒ & BIỂU ĐỒ ----- */}
       <Row gutter={16}>
         <Col span={16}>
-          {/* (Phần bản đồ vẫn là placeholder) */}
-          <Card title="Tổng quan xe trực tuyến" style={{ height: '100%' }}>
-            <div
-              style={{
-                height: '100%',
-                minHeight: 350,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#fafafa',
-              }}
-            >
-              Đây là nơi chứa bản đồ nhỏ...
-            </div>
-          </Card>
+           <OnlineVehiclesMap />
         </Col>
 
         <Col span={8}>
