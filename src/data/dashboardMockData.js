@@ -69,3 +69,16 @@ export const tableData = [
     status: 'Hoàn thành',
   },
 ];
+
+// --- DỮ LIỆU BẢN ĐỒ ---
+export const BUS_LOCATIONS = [
+  { id: 1, lat: 10.7769, lng: 106.7009, name: 'Bus 50H-123', driver: 'Nguyễn Văn A', route: 'Bến Thành - Suối Tiên', speed: 35 },
+  { id: 2, lat: 10.7796, lng: 106.6990, name: 'Bus 51B-456', driver: 'Trần Thị B', route: 'Quận 1 - Quận 7', speed: 40 },
+  { id: 3, lat: 10.7725, lng: 106.6980, name: 'Bus 59Z-789', driver: 'Lê Văn C', route: 'Sân bay - Bến xe Miền Đông', speed: 30 },
+];
+
+export const initialViewState = {
+  latitude: 10.7760,
+  longitude: 106.7000,
+  zoom: 14,
+};
