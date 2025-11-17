@@ -1,0 +1,25 @@
+.formContainer {
+  /* Giới hạn độ rộng của form cho đẹp */
+  max-width: 900px;
+}
+
+.avatarUploader {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.avatarActions {
+  margin-top: 16px;
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* Tùy chỉnh component Upload của Antd */
+.avatarUploader :global(.ant-upload-select) {
+  /* Bỏ giao diện mặc định (cái hộp) */
+  background: none !important;
+  border: none !important;
+  width: auto !important;
+  height: auto !important;
+}

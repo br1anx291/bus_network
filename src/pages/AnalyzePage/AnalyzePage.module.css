@@ -1,0 +1,23 @@
+.pageContainer {
+  /* (Để trống) */
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  margin: 0 !important;
+}
+
+.chartContainer {
+  background: #ffffff;
+  padding: 24px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  margin-bottom: 24px;
+}
+
+.barChartRow {
+  width: 100%;
+}

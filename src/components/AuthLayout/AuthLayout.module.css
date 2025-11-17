@@ -1,0 +1,10 @@
+/* src/components/layout/AuthLayout/AuthLayout.module.css */
+.authContainer {
+  /* Lấy màu vàng từ thiết kế (giống màu sidebar) */
+  background-color: #FFD800; 
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px; /* Thêm padding cho responsive */
+}

@@ -127,25 +127,36 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, Typography } from 'antd';
 import BusMarker from '../BusMarker'; // Import component con
 import { BUS_LOCATIONS, initialViewState } from  '../../data/dashboardMockData';
+import styles from './OnlineVehiclesMap.module.css'; // <-- 2. IMPORT MODULE
 const { Title } = Typography;
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Bọc component trong React.memo nếu cần (nếu nó nhận props từ cha)
+// Hàm này vẫn giữ nguyên ở ngoài, rất tốt
+const renderPopupInfo = (bus) => {
+  return (
+    <div className={styles.popupContainer}>
+      <h4 className={styles.popupTitle}>{bus.name}</h4>
+      <div className={styles.popupInfo}>
+        <div><strong>Tài xế:</strong> {bus.driver || 'Chưa cập nhật'}</div>
+        <div><strong>Tuyến:</strong> {bus.route || 'Chưa cập nhật'}</div>
+        <div><strong>Tốc độ:</strong> {bus.speed ? `${bus.speed} km/h` : 'Chưa cập nhật'}</div>
+        <div><strong>Tọa độ:</strong> {bus.lat.toFixed(4)}, {bus.lng.toFixed(4)}</div>
+      </div>
+    </div>
+  );
+};
+
 const OnlineVehiclesMap = () => {
   const [selectedBus, setSelectedBus] = useState(null);
 
-  // Dùng useCallback để hàm onMarkerClick không bị tạo lại mỗi lần render
-  // Giúp React.memo ở BusMarker hoạt động hiệu quả
   const handleMarkerClick = useCallback((bus) => {
     setSelectedBus(bus);
-  }, []); // Phụ thuộc rỗng vì nó chỉ set state
+  }, []); 
 
   const handlePopupClose = useCallback(() => {
     setSelectedBus(null);
   }, []);
 
-  // Dùng useMemo để tính toán danh sách markers
-  // Chỉ chạy lại khi BUS_LOCATIONS (hoặc handleMarkerClick) thay đổi
   const markers = useMemo(
     () =>
       BUS_LOCATIONS.map((bus) => (
@@ -155,37 +166,24 @@ const OnlineVehiclesMap = () => {
           onMarkerClick={handleMarkerClick}
         />
       )),
-    [BUS_LOCATIONS, handleMarkerClick] // Tạm thời BUS_LOCATIONS là hằng số, nhưng nếu là props thì rất hữu ích
+    [BUS_LOCATIONS, handleMarkerClick]
   );
-
-  // Xử lý dữ liệu "giả" trong popup tốt hơn
-  const renderPopupInfo = (bus) => {
-    return (
-      <div style={{ minWidth: 180, padding: '8px 5px', fontFamily: 'sans-serif' }}>
-        <h4 style={{ margin: '0 0 6px', color: '#D32F2F', fontWeight: 600, fontSize: '15px' }}>{bus.name}</h4>
-        <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
-          <div><strong>Tài xế:</strong> {bus.driver || 'Chưa cập nhật'}</div>
-          <div><strong>Tuyến:</strong> {bus.route || 'Chưa cập nhật'}</div>
-          <div><strong>Tốc độ:</strong> {bus.speed ? `${bus.speed} km/h` : 'Chưa cập nhật'}</div>
-          <div><strong>Tọa độ:</strong> {bus.lat.toFixed(4)}, {bus.lng.toFixed(4)}</div>
-        </div>
-      </div>
-    );
-  };
 
   return (
     <Card
       title={
-        <Title level={4} style={{ margin: 0 }}>
+        <Title level={4} className={styles.cardTitle}>
           Tổng quan xe trực tuyến
         </Title>
       }
-      style={{ height: '100%' }}
-      styles={{ body: { height: '400px', padding: '12px' } }}
+      className={styles.card}
+      // 1. SỬA TẠI ĐÂY: Dùng 'classNames' thay vì 'styles'
+      classNames={{ body: styles.cardBody }} 
     >
-      <div style={{ width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
+      <div className={styles.mapWrapper}>
         <Map
           initialViewState={initialViewState}
+          // 2. SỬA TẠI ĐÂY: Trả lại 'style' prop, xóa 'className'
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           mapboxAccessToken={MAPBOX_TOKEN}
@@ -194,17 +192,15 @@ const OnlineVehiclesMap = () => {
           <NavigationControl position="bottom-right" />
           <FullscreenControl position="top-right" />
 
-          {/* Render danh sách markers đã được memoized */}
           {markers}
 
-          {/* Popup */}
           {selectedBus && (
             <Popup
               latitude={selectedBus.lat}
               longitude={selectedBus.lng}
               anchor="bottom-left"
               offset={[25, -50]}
-              onClose={handlePopupClose} // Dùng hàm đã useCallback
+              onClose={handlePopupClose}
               closeOnClick={true}
               closeButton={true}
             >

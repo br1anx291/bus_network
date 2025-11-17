@@ -8,6 +8,7 @@ import {
   BellOutlined,
 } from '@ant-design/icons';
 import { statsData } from  '../../data/dashboardMockData';
+import styles from './StatCardsGroup.module.css';
 
 const iconMap = {
   CarOutlined: <CarOutlined />,
@@ -19,69 +20,29 @@ const iconMap = {
 const StatCardsGroup = () => {
   return (
     <Row gutter={[16, 16]}>
-      {statsData.map((item, index) => (
-        <Col xs={24} sm={12} md={8} lg={6} key={index}>
+      {statsData.map((item) => ( // 3. Bỏ 'index'
+        <Col xs={24} sm={12} md={8} lg={6} key={item.title}> {/* 4. Dùng item.title làm key */}
           <Card
             bordered={false}
-            style={{
-              boxShadow: '0 4px 5px rgba(0, 0, 0, 0.25)',
-              borderRadius: '16px',
-              padding: '20px',
-            }}
+            // 5. Tách style ra
+            className={styles.statCard}
+            classNames={{ body: styles.statCardBody }}
+            // Toàn bộ inline style đã bị xóa
           >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'flex-start',
-                justifyContent: 'space-between',
-              }}
-            >
-              {/* --- BÊN TRÁI: ICON TRONG HÌNH TRÒN --- */}
-              <div
-                style={{
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(255, 216, 0, 0.2)', // vàng nhạt sữa tươi
-
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                }}
-              >
-                <span style={{ fontSize: '28px', color: '#000' }}>
+            <div className={styles.contentWrapper}>
+              {/* --- BÊN TRÁI: ICON --- */}
+              <div className={styles.iconWrapper}>
+                <span className={styles.icon}>
                   {iconMap[item.icon]}
                 </span>
               </div>
 
               {/* --- BÊN PHẢI: CHỮ --- */}
-              <div
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'flex-start',
-                  marginLeft: '18px',
-                  flex: 1,
-                }}
-              >
-                <div
-                  style={{
-                    fontSize: '26px',
-                    fontWeight: 'bold',
-                    color: '#000',
-                    lineHeight: 1.2,
-                  }}
-                >
+              <div className={styles.textWrapper}>
+                <div className={styles.textValue}>
                   {item.value}
                 </div>
-                <div
-                  style={{
-                    fontSize: '14px',
-                    color: '#555',
-                    marginTop: '4px',
-                  }}
-                >
+                <div className={styles.textTitle}>
                   {item.title}
                 </div>
               </div>
@@ -94,4 +55,3 @@ const StatCardsGroup = () => {
 };
 
 export default StatCardsGroup;
-  

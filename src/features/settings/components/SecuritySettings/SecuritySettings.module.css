@@ -1,0 +1,4 @@
+.formContainer {
+  /* Giới hạn độ rộng của form cho đẹp */
+  max-width: 600px;
+}

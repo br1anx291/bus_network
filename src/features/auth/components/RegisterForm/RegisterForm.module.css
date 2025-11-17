@@ -1,0 +1,26 @@
+.registerFormContainer {
+  width: 100%;
+}
+
+.title {
+  text-align: left; /* Căn trái như Figma */
+  margin-bottom: 8px !important;
+}
+
+.subtitle {
+  display: block;
+  text-align: left;
+  margin-bottom: 28px;
+}
+
+.registerButton {
+  width: 100%;
+  background-color: #FFD800; /* Màu vàng */
+  border: none;
+  color: #000; /* Chữ đen */
+  font-weight: bold;
+}
+
+.registerButton:hover {
+  background-color: #e6c600 !important; /* Vàng đậm hơn khi hover */
+}

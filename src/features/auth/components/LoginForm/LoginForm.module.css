@@ -1,0 +1,31 @@
+.loginFormContainer {
+  width: 100%;
+  max-width: 400px; /* Giới hạn chiều rộng form */
+}
+
+.title {
+  text-align: left; /* Figma căn trái */
+  margin-bottom: 8px !important;
+}
+
+.subtitle {
+  display: block;
+  text-align: left;
+  margin-bottom: 28px;
+}
+
+.forgotPassword {
+  color: #FFC107; /* Màu vàng */
+  font-weight: 500;
+}
+
+.loginButton {
+  width: 100%;
+  background-color: #A9A9A9; /* Màu xám từ Figma */
+  border: none;
+  font-weight: bold;
+}
+
+.loginButton:hover {
+  background-color: #9a9a9a !important;
+}

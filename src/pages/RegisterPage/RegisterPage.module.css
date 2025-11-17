@@ -1,0 +1,44 @@
+/* src/pages/RegisterPage/RegisterPage.module.css */
+.registerPageContainer {
+  width: 100%;
+  max-width: 1200px; /* Mở rộng chiều rộng tổng thể */
+  height: 700px; /* Chiều cao cố định như Figma */
+  max-height: 90vh;
+  display: flex; /* Bật flexbox cho 2 cột */
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden; 
+}
+
+/* --- CỘT TRÁI (FORM) --- */
+.formPanel {
+  flex: 1; /* Chiếm 1 phần không gian */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: #ffffff;
+}
+
+/* --- CỘT PHẢI (LOGO) --- */
+.logoPanel {
+  flex: 1; /* Chiếm 1 phần không gian */
+  display: flex;
+  flex-direction: column; /* Để logo có thể căn giữa */
+  align-items: center;
+  justify-content: center;
+  /* padding: 20px; */
+  background-color: #ffffff; /* Nền xám nhạt cho phần logo */
+  /* Hoặc màu vàng nếu bạn muốn đồng bộ với trang Login */
+  /* background-color: #FFD800; */
+}
+
+.logoImg {
+  max-width: 80%; /* Giới hạn kích thước logo */
+  height: auto;
+  display: block; /* Loại bỏ khoảng trắng dưới ảnh */
+}
+
+/* Nếu bạn thêm .logoText vào, thì có thể style ở đây */
+/* .logoText { ... } */

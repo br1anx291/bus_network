@@ -1,0 +1,50 @@
+/* src/features/dashboard/components/OnlineVehiclesMap/OnlineVehiclesMap.module.css */
+
+.cardTitle {
+  margin: 0 !important; /* Ghi đè margin mặc định của Antd Title */
+}
+
+.card {
+  height: 100%;
+}
+
+/* Style cho slot 'body' của Antd Card */
+.cardBody {
+  height: 400px;
+  padding: 12px !important; /* Ghi đè padding mặc định của Antd */
+}
+
+/* Div bọc ngoài Map để tạo border-radius */
+.mapWrapper {
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+/* Style cho chính component Map */
+.map {
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Tách style của Popup ra --- */
+
+.popupContainer {
+  min-width: 180px;
+  padding: 8px 5px;
+  font-family: 'sans-serif'; /* Tạm thời, sau này nên dùng biến global */
+}
+
+.popupTitle {
+  margin: 0 0 6px;
+  color: #d32f2f; /* Tạm thời, sau này nên dùng biến global */
+  font-weight: 600;
+  font-size: 15px;
+}
+
+.popupInfo {
+  font-size: 13px;
+  color: #333; /* Tạm thời, sau này nên dùng biến global */
+  line-height: 1.6;
+}

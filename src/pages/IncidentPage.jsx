@@ -1,4 +1,0 @@
-const IncidentPage = () => {
-  return <div>Đây là Trang SỰ CỐ</div>;
-};
-export default IncidentPage;

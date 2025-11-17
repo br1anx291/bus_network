@@ -1,0 +1,54 @@
+/* src/pages/LoginPage/LoginPage.module.css */
+.loginPageContainer {
+  width: 100%;
+  max-width: 1200px; /* Giới hạn chiều rộng tổng thể */
+  height: 700px; /* Chiều cao cố định như Figma */
+  max-height: 90vh;
+  display: flex;
+  background-color: #ffffff;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Quan trọng để bo góc */
+}
+
+/* --- CỘT TRÁI --- */
+.logoPanel {
+  flex: 1;
+  /* Dùng lại màu vàng */
+  background-color: #FFD800; 
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  gap: 20px; /* Thêm khoảng cách giữa img và text */
+}
+.logoImg {
+  max-width: 80%; /* Giới hạn kích thước logo */
+  height: auto;
+  display: block; /* Loại bỏ khoảng trắng dưới ảnh */
+  margin-bottom: 20px; /* Tạo khoảng cách với chữ BusNetwork */
+}
+.logoTextWrapper {
+  /* display: flex; */
+  align-items: center;
+  /* Giả lập logo từ text */
+  flex-direction: column;
+}
+
+.logoText {
+  font-size: 48px !important;
+  font-weight: bold !important;
+  color: #000 !important;
+  font-family: 'Poppins', sans-serif;
+}
+
+/* --- CỘT PHẢI --- */
+.formPanel {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  background-color: #ffffff;
+}

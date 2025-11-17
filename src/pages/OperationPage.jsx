@@ -1,4 +1,0 @@
-const MapPage = () => {
-  return <div>Đây là Trang VẬN HÀNH</div>;
-};
-export default MapPage;

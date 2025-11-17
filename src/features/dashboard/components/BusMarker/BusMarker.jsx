@@ -1,53 +1,38 @@
-// src/components/Dashboard/BusMarker.jsx
+// src/features/dashboard/components/BusMarker/BusMarker.jsx
 import React from 'react';
 import { Marker } from 'react-map-gl';
-import busMarker from '../../../../assets/bus-marker.png';
 
-// Sử dụng React.memo để tối ưu
+// 1. SỬA ĐƯỜNG DẪN IMPORT (Xem giải thích bên dưới)
+import busMarker from '../../../../assets/bus-marker.png'; 
+
+// 2. Import CSS Module
+import styles from './BusMarker.module.css';
+
 const BusMarker = ({ bus, onMarkerClick }) => {
-  // Đóng gói logic click vào đây
   const handleClick = (e) => {
-    e.stopPropagation?.(); // Ngăn sự kiện lan xuống map
+    e.stopPropagation?.();
     onMarkerClick(bus);
   };
 
   return (
-    <Marker
-      latitude={bus.lat}
-      longitude={bus.lng}
-      anchor="bottom"
-      // Offset marker một chút nếu cần, ví dụ: offset={[0, -25]}
-    >
-      {/* Sử dụng <button> để cải thiện accessibility.
-        Cần CSS để reset style mặc định của button.
-      */}
+    <Marker latitude={bus.lat} longitude={bus.lng} anchor="bottom">
       <button
         type="button"
         onClick={handleClick}
         title={bus.name}
-        style={{
-          background: 'none',
-          border: 'none',
-          padding: 0,
-          cursor: 'pointer',
-        }}
+        className={styles.markerButton} // 3. Áp dụng class
+        // Toàn bộ inline style đã bị xóa
       >
         <img
           src={busMarker}
           alt={bus.name}
-          style={{
-            width: '50px',
-            height: '50px',
-            filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-            userSelect: 'none',
-            WebkitUserDrag: 'none',
-          }}
+          className={styles.markerImage} // 4. Áp dụng class
           draggable={false}
+          // Toàn bộ inline style đã bị xóa
         />
       </button>
     </Marker>
   );
 };
 
-// So sánh nông (shallow compare) props
 export default React.memo(BusMarker);

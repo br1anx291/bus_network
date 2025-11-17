@@ -1,0 +1,16 @@
+/* src/features/dashboard/components/RecentIncidentsTable/RecentIncidentsTable.module.css */
+
+.cardTitle {
+  margin: 0 !important; /* Ghi đè margin mặc định của Antd Title */
+}
+
+/* * Class cho cột 'LOẠI'
+ * Đặt tên theo nghiệp vụ, không phải theo màu sắc
+*/
+.typeIncident {
+  color: #d32f2f;
+}
+
+.typeRequest {
+  color: #1890ff;
+}

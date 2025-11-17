@@ -1,0 +1,45 @@
+/* src/pages/MapPage/MapPage.module.css */
+
+/* Container chính của trang, 
+   chia làm 2 phần: Filter (trên) và Map (dưới) 
+*/
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%; /* Rất quan trọng: để map chiếm hết chiều cao */
+}
+
+/* Thanh filter */
+.filterBar {
+  padding: 16px;
+  background: #ffffff;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+.filterSelect {
+  width: 250px;
+}
+
+.filterSearch {
+  width: 300px;
+}
+
+/* Container của Map */
+.mapContainer {
+  flex: 1; /* Rất quan trọng: Map chiếm hết phần còn lại */
+  border-radius: 8px;
+  overflow: hidden; /* Giúp bo góc cho map */
+
+  /* Fix lỗi Mapbox không hiển thị */
+  position: relative; 
+  width: 100%;
+  height: 100%;
+}
+
+/* Đè CSS của Mapbox để đảm bảo nó hiển thị 100% */
+.mapContainer :global(.mapboxgl-map) {
+  width: 100%;
+  height: 100%;
+}

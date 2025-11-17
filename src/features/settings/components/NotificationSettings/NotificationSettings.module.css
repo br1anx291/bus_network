@@ -1,0 +1,50 @@
+.formContainer {
+  max-width: 800px;
+}
+
+.settingBlock {
+  padding: 16px;
+  border: 1px solid #f0f0f0;
+  border-radius: 8px;
+  margin-bottom: 24px;
+}
+
+.settingBlock:last-child {
+  margin-bottom: 0;
+}
+
+.tableHeader {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr; /* Tỉ lệ cột: Tên | Web | Email */
+  padding: 0 16px;
+  color: #888;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.tableHeader > span:nth-child(2),
+.tableHeader > span:nth-child(3) {
+  text-align: center;
+}
+
+.settingItem {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr; /* Tỉ lệ cột */
+  align-items: center;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.settingItem:last-child {
+  border-bottom: none;
+}
+
+.settingItem > div {
+  text-align: center;
+}
+
+.categoryTitle {
+  font-weight: 600;
+  color: #333;
+  padding: 12px 16px;
+}

@@ -1,0 +1,11 @@
+.pageContainer {
+  /* (Để trống) */
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  margin: 0 !important; /* Reset margin của Title */
+}

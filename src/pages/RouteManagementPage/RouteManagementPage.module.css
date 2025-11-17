@@ -1,0 +1,13 @@
+.pageContainer {
+  /* (Không cần làm gì nhiều) */
+}
+
+.pageHeader {
+  margin-bottom: 24px;
+}
+
+.pageTitle {
+  margin: 0 !important; /* Reset margin của Title */
+}
+
+/* (Bạn có thể thêm style cho nút Thêm mới ở đây nếu muốn) */
