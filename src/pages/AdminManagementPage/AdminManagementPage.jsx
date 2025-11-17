@@ -14,9 +14,8 @@ import styles from './AdminManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const AdminManagementPage = () => {
-  // --- (State không đổi) ---
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +28,22 @@ const AdminManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getAdmins
-      const result = await adminService.getAdmins(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await adminService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách admin!'); // Sửa text
+      message.error('Lỗi khi tải danh sách admin!');
     } finally {
       setLoading(false);
     }
@@ -55,26 +59,26 @@ const AdminManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deleteAdmin
-      await adminService.deleteAdmin(id); 
-      message.success('Xóa admin thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await adminService.delete(id); 
+      message.success('Xóa admin thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa admin!'); // Sửa text
+      message.error('Lỗi khi xóa admin!');
     }
   };
 
   // --- 5. SỬA STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingAdmin, setEditingAdmin] = useState(null); // Đổi tên state
+  const [editingAdmin, setEditingAdmin] = useState(null); 
 
   const handleOpenAddModal = () => {
-    setEditingAdmin(null); // Đổi tên state
+    setEditingAdmin(null); 
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (admin) => { // Đổi tên param
-    setEditingAdmin(admin); // Đổi tên state
+  const handleOpenEditModal = (admin) => { 
+    setEditingAdmin(admin); 
     setIsModalOpen(true);
   };
 
@@ -92,7 +96,7 @@ const AdminManagementPage = () => {
       {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý admin {/* Sửa text */}
+          Quản lý admin 
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +104,11 @@ const AdminManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm admin mới {/* Sửa text */}
+          Thêm admin mới 
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG DỮ LIỆU --- */}
       <AdminTable 
         data={data}
         loading={loading}
@@ -114,11 +118,12 @@ const AdminManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <AdminFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingAdmin={editingAdmin} // Truyền prop mới
+        editingAdmin={editingAdmin} 
       />
     </div>
   );

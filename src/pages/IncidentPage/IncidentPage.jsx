@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { Flex, Typography, message } from 'antd';
 import IncidentTable from '~/features/incidents/components/IncidentTable';
-// --- 1. IMPORT MODAL MỚI ---
+// --- 1. IMPORT MODAL VIEW ---
 import IncidentViewModal from '~/features/incidents/components/IncidentViewModal'; 
 import { incidentService } from '~/services/incidentService';
 import styles from './IncidentPage.module.css';
@@ -10,60 +10,76 @@ import styles from './IncidentPage.module.css';
 const { Title } = Typography;
 
 const IncidentPage = () => {
-  // (State data, loading, pagination... giữ nguyên)
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ /*...*/ });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 7,
+    total: 0,
+  });
 
-  // --- 2. THÊM STATE CHO MODAL ---
+  // --- 2. STATE CHO MODAL ---
   const [isViewModalOpen, setIsViewModalOpen] = useState(false);
   const [viewingIncident, setViewingIncident] = useState(null);
 
-  // (fetchData, handleTableChange, handleMarkComplete... giữ nguyên)
+  // --- 3. FETCH DATA (Đã nâng cấp) ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      const result = await incidentService.getIncidents(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP] getIncidents -> getAll
+      const result = await incidentService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data (Mock vs API)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
+      
       setData(mappedData);
-      setPagination({ /*...*/ });
+      setPagination({
+        ...pagination,
+        current: page,
+        total: totalCount,
+      });
     } catch (error) {
       message.error('Lỗi khi tải danh sách sự cố!');
     } finally {
       setLoading(false);
     }
   };
+
   useEffect(() => { fetchData(); }, []);
+
   const handleTableChange = (newPagination) => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
+
+  // --- 4. CẬP NHẬT TRẠNG THÁI (Đã nâng cấp) ---
   const handleMarkComplete = async (id, isCompleted) => {
     try {
-      await incidentService.updateIncidentCompletion(id, isCompleted);
+      // [NÂNG CẤP] updateIncidentCompletion -> updateCompletion
+      await incidentService.updateCompletion(id, isCompleted);
+      
       message.success(isCompleted ? 'Đánh dấu đã hoàn thành!' : 'Bỏ đánh dấu hoàn thành!');
-      setData((prevData) => 
-        prevData.map(item => 
-          item.id === id 
-            ? { ...item, isCompleted: isCompleted, status: isCompleted ? 'Đã xử lý' : 'Mới' } 
-            : item
-        )
-      );
+      
+      // Tải lại dữ liệu để cập nhật bảng
+      fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
       message.error('Lỗi khi cập nhật trạng thái!');
     }
   };
 
-  // --- 3. THÊM CÁC HÀM XỬ LÝ MODAL ---
+  // --- 5. XỬ LÝ MODAL VIEW ---
   const handleView = (incidentRecord) => {
-    setViewingIncident(incidentRecord); // Lưu data sự cố đang xem
-    setIsViewModalOpen(true);          // Mở modal
+    setViewingIncident(incidentRecord); 
+    setIsViewModalOpen(true);          
   };
 
   const handleCloseViewModal = () => {
     setIsViewModalOpen(false);
-    setViewingIncident(null); // Xóa data khi đóng
+    setViewingIncident(null); 
   };
-  // --- HẾT PHẦN THÊM ---
 
   return (
     <div className={styles.pageContainer}>
@@ -73,17 +89,17 @@ const IncidentPage = () => {
         </Title>
       </Flex>
 
-      {/* --- 4. CẬP NHẬT PROPS TRUYỀN XUỐNG BẢNG --- */}
+      {/* BẢNG SỰ CỐ */}
       <IncidentTable 
         data={data}
         loading={loading}
         pagination={pagination}
         onTableChange={handleTableChange}
         onMarkComplete={handleMarkComplete}
-        onView={handleView} // <-- Truyền hàm View xuống
+        onView={handleView} 
       />
 
-      {/* --- 5. RENDER MODAL --- */}
+      {/* MODAL XEM CHI TIẾT */}
       <IncidentViewModal
         open={isViewModalOpen}
         onClose={handleCloseViewModal}

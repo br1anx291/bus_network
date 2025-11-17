@@ -1,12 +1,16 @@
 // src/services/passengerService.js
+import axiosClient from '~/api/axiosClient';
 import { rawPassengerData } from '~/features/passengers/data/passengerMockData'; // <-- 1. SỬA IMPORT
 
-// --- Giả lập Database ---
-let passengers = [...rawPassengerData]; // <-- 2. SỬA TÊN BIẾN
-
+// --- CẤU HÌNH CHẾ ĐỘ ---
+const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
 const MOCK_DELAY = 500;
 
-const mockApi = (data) => {
+// --- KHO DATA GIẢ LẬP ---
+let localPassengers = [...rawPassengerData]; // <-- Đổi tên biến (tránh trùng lặp)
+
+// Hàm Helper giả lập độ trễ
+const mockDelay = (data) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(data);
@@ -14,56 +18,107 @@ const mockApi = (data) => {
   });
 };
 
-// --- Các hàm CRUD ---
+export const passengerService = {
+  
+  /**
+   * 1. Lấy danh sách hành khách (Phân trang)
+   * [ĐỔI TÊN] getPassengers -> getAll
+   */
+  getAll: async (page = 1, pageSize = 10) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Get Passengers - Page: ${page}, Size: ${pageSize}`);
+      
+      const start = (page - 1) * pageSize;
+      const end = page * pageSize;
+      const paginatedData = localPassengers.slice(start, end);
 
-const getPassengers = (page = 1, pageSize = 7) => { // <-- 3. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: getPassengers ---', { page, pageSize });
-  const start = (page - 1) * pageSize;
-  const end = page * pageSize;
-  const paginatedData = passengers.slice(start, end); // <-- 4. SỬA TÊN BIẾN
-  return mockApi({
-    data: paginatedData,
-    total: passengers.length, // <-- 5. SỬA TÊN BIẾN
-  });
-};
-
-const deletePassenger = (id) => { // <-- 6. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: deletePassenger ---', { id });
-  passengers = passengers.filter((p) => p.id !== id); // <-- 7. SỬA TÊN BIẾN
-  return mockApi({ success: true });
-};
-
-const createPassenger = (data) => { // <-- 8. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: createPassenger ---', data);
-  const newPassenger = {
-    ...data,
-    id: `p${new Date().getTime()}`,
-  };
-  passengers.unshift(newPassenger); // <-- 9. SỬA TÊN BIẾN
-  return mockApi({ success: true, passenger: newPassenger });
-};
-
-const updatePassenger = (id, data) => { // <-- 10. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: updatePassenger ---', { id, data });
-  let targetPassenger = null;
-  passengers = passengers.map((p) => { // <-- 11. SỬA TÊN BIẾN
-    if (p.id === id) {
-      targetPassenger = { ...p, ...data };
-      return targetPassenger;
+      return mockDelay({
+        data: paginatedData,
+        total: localPassengers.length,
+      });
     }
-    return p;
-  });
-  if (targetPassenger) {
-    return mockApi({ success: true, passenger: targetPassenger });
-  } else {
-    return Promise.reject(new Error('Không tìm thấy hành khách để cập nhật'));
-  }
-};
 
-// --- Xuất ra service ---
-export const passengerService = { // <-- 12. SỬA TÊN EXPORT
-  getPassengers,
-  deletePassenger,
-  createPassenger,
-  updatePassenger,
+    // Gọi API thật: GET /passengers?page=1&limit=10
+    return axiosClient.get('/passengers', {
+      params: { page, limit: pageSize }
+    });
+  },
+
+  /**
+   * 2. Lấy chi tiết 1 hành khách (Bổ sung)
+   */
+  getById: async (id) => {
+    if (USE_MOCK) {
+      const passenger = localPassengers.find(p => p.id === id);
+      return mockDelay(passenger);
+    }
+    return axiosClient.get(`/passengers/${id}`);
+  },
+
+  /**
+   * 3. Thêm hành khách mới
+   * [ĐỔI TÊN] createPassenger -> create
+   */
+  create: async (data) => {
+    if (USE_MOCK) {
+      console.log('[MOCK API] Create Passenger:', data);
+
+      const newPassenger = {
+        ...data,
+        id: `p${new Date().getTime()}`,
+      };
+
+      localPassengers.unshift(newPassenger);
+
+      return mockDelay(newPassenger);
+    }
+
+    // Gọi API thật: POST /passengers
+    return axiosClient.post('/passengers', data);
+  },
+
+  /**
+   * 4. Cập nhật hành khách
+   * [ĐỔI TÊN] updatePassenger -> update
+   */
+  update: async (id, data) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Update Passenger ${id}:`, data);
+
+      let targetPassenger = null;
+      localPassengers = localPassengers.map((p) => {
+        if (p.id === id) {
+          targetPassenger = { ...p, ...data };
+          return targetPassenger;
+        }
+        return p;
+      });
+
+      if (targetPassenger) {
+        return mockDelay(targetPassenger);
+      } else {
+        return Promise.reject(new Error('Không tìm thấy hành khách để cập nhật'));
+      }
+    }
+
+    // Gọi API thật: PUT /passengers/:id
+    return axiosClient.put(`/passengers/${id}`, data);
+  },
+
+  /**
+   * 5. Xóa hành khách
+   * [ĐỔI TÊN] deletePassenger -> delete
+   */
+  delete: async (id) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Delete Passenger ${id}`);
+
+      localPassengers = localPassengers.filter(p => p.id !== id);
+
+      return mockDelay({ success: true });
+    }
+
+    // Gọi API thật: DELETE /passengers/:id
+    return axiosClient.delete(`/passengers/${id}`);
+  }
 };

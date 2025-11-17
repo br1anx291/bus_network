@@ -1,12 +1,13 @@
 // src/features/trips/components/TripFormModal/TripFormModal.jsx
 import React, { useEffect, useState } from 'react';
-// 1. Import thêm Row, Col
 import { Modal, Form, Input, Select, message, DatePicker, Row, Col } from 'antd'; 
-import dayjs from 'dayjs'; // 2. Import dayjs để xử lý date
+import dayjs from 'dayjs'; 
 
+// 1. Import Service
 import { tripService } from '~/services/tripService'; 
 import { STATUS_COLOR_MAP } from '../../data/tripMockData';
 
+// Lấy danh sách status từ Mock Data để đồng bộ màu sắc
 const statusOptions = Object.keys(STATUS_COLOR_MAP).map(status => ({
   value: status,
   label: status,
@@ -17,45 +18,52 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!editingTrip;
 
+  // 2. Đổ dữ liệu vào form
   useEffect(() => {
-    if (isEditing) {
-      // 3. Phải convert string sang dayjs object cho DatePicker
-      form.setFieldsValue({
-        ...editingTrip,
-        startTime: editingTrip.startTime ? dayjs(editingTrip.startTime) : null,
-        endTime: editingTrip.endTime ? dayjs(editingTrip.endTime) : null,
-      });
-    } else {
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        // Antd DatePicker cần object dayjs, không nhận string
+        form.setFieldsValue({
+          ...editingTrip,
+          startTime: editingTrip.startTime ? dayjs(editingTrip.startTime) : null,
+          endTime: editingTrip.endTime ? dayjs(editingTrip.endTime) : null,
+        });
+      } else {
+        form.resetFields();
+      }
     }
-  }, [editingTrip, form, isEditing]);
+  }, [editingTrip, form, isEditing, open]);
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // 4. Convert dayjs object về lại string (nếu cần)
+      // 3. Chuẩn hóa dữ liệu trước khi gửi (Date -> String)
       const processedValues = {
         ...values,
-        startTime: values.startTime.toISOString(),
-        endTime: values.endTime.toISOString(),
+        startTime: values.startTime ? values.startTime.toISOString() : null,
+        endTime: values.endTime ? values.endTime.toISOString() : null,
       };
 
       if (isEditing) {
-        await tripService.updateTrip(editingTrip.id, processedValues);
+        // [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        await tripService.update(editingTrip.id, processedValues);
         message.success('Cập nhật chuyến thành công!');
       } else {
-        await tripService.createTrip(processedValues);
+        // [NÂNG CẤP] Gọi hàm create
+        await tripService.create(processedValues);
         message.success('Thêm chuyến mới thành công!');
       }
 
-      onSuccess();
-      onClose();
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin chuyến:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -68,16 +76,19 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={isLoading}
+      width={600}
+      okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
+      cancelText="Hủy bỏ"
       forceRender
-      width={600} // Mở rộng modal cho 2 cột date
     >
-      {/* 5. SỬA FORM */}
       <Form
         form={form}
         layout="vertical"
         name="trip_form"
         style={{ marginTop: '24px' }}
+        initialValues={{ status: 'Đang chạy' }}
       >
+        {/* 1. TÊN TUYẾN */}
         <Form.Item
           name="routeName"
           label="Tên tuyến"
@@ -86,6 +97,7 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
           <Input placeholder="Ví dụ: Tuyến 05" />
         </Form.Item>
 
+        {/* 2. XE VÀ TÀI XẾ */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -107,7 +119,7 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
           </Col>
         </Row>
 
-        {/* 6. Thêm Row/Col cho Start/End Time */}
+        {/* 3. THỜI GIAN */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -115,7 +127,7 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
               label="Thời gian khởi hành"
               rules={[{ required: true, message: 'Vui lòng chọn thời gian!' }]}
             >
-              <DatePicker showTime style={{ width: '100%' }} />
+              <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
             </Form.Item>
           </Col>
           <Col span={12}>
@@ -124,11 +136,12 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
               label="Thời gian kết thúc (Dự kiến)"
               rules={[{ required: true, message: 'Vui lòng chọn thời gian!' }]}
             >
-              <DatePicker showTime style={{ width: '100%' }} />
+              <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
             </Form.Item>
           </Col>
         </Row>
 
+        {/* 4. TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

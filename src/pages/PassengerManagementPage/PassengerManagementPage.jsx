@@ -14,9 +14,8 @@ import styles from './PassengerManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const PassengerManagementPage = () => {
-  // --- (State không đổi) ---
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +28,22 @@ const PassengerManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getPassengers
-      const result = await passengerService.getPassengers(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await passengerService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách hành khách!'); // Sửa text
+      message.error('Lỗi khi tải danh sách hành khách!');
     } finally {
       setLoading(false);
     }
@@ -55,26 +59,26 @@ const PassengerManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deletePassenger
-      await passengerService.deletePassenger(id); 
-      message.success('Xóa hành khách thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await passengerService.delete(id); 
+      message.success('Xóa hành khách thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa hành khách!'); // Sửa text
+      message.error('Lỗi khi xóa hành khách!');
     }
   };
 
   // --- 5. SỬA STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPassenger, setEditingPassenger] = useState(null); // Đổi tên state
+  const [editingPassenger, setEditingPassenger] = useState(null); 
 
   const handleOpenAddModal = () => {
-    setEditingPassenger(null); // Đổi tên state
+    setEditingPassenger(null); 
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (passenger) => { // Đổi tên param
-    setEditingPassenger(passenger); // Đổi tên state
+  const handleOpenEditModal = (passenger) => { 
+    setEditingPassenger(passenger); 
     setIsModalOpen(true);
   };
 
@@ -92,7 +96,7 @@ const PassengerManagementPage = () => {
       {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý hành khách {/* Sửa text */}
+          Quản lý hành khách 
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +104,11 @@ const PassengerManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm hành khách mới {/* Sửa text */}
+          Thêm hành khách mới 
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG DỮ LIỆU --- */}
       <PassengerTable 
         data={data}
         loading={loading}
@@ -114,11 +118,12 @@ const PassengerManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <PassengerFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingPassenger={editingPassenger} // Truyền prop mới
+        editingPassenger={editingPassenger} 
       />
     </div>
   );

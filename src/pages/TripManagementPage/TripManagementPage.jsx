@@ -14,9 +14,8 @@ import styles from './TripManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const TripManagementPage = () => {
-  // --- (State không đổi) ---
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +28,22 @@ const TripManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getTrips
-      const result = await tripService.getTrips(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await tripService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách chuyến!'); // Sửa text
+      message.error('Lỗi khi tải danh sách chuyến!');
     } finally {
       setLoading(false);
     }
@@ -55,26 +59,26 @@ const TripManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deleteTrip
-      await tripService.deleteTrip(id); 
-      message.success('Xóa chuyến thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await tripService.delete(id); 
+      message.success('Xóa chuyến thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa chuyến!'); // Sửa text
+      message.error('Lỗi khi xóa chuyến!'); 
     }
   };
 
-  // --- 5. SỬA STATE MODAL (cho dễ đọc) ---
+  // --- 5. STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingTrip, setEditingTrip] = useState(null); // Đổi tên state
+  const [editingTrip, setEditingTrip] = useState(null); 
 
   const handleOpenAddModal = () => {
-    setEditingTrip(null); // Đổi tên state
+    setEditingTrip(null); 
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (trip) => { // Đổi tên param
-    setEditingTrip(trip); // Đổi tên state
+  const handleOpenEditModal = (trip) => { 
+    setEditingTrip(trip); 
     setIsModalOpen(true);
   };
 
@@ -92,7 +96,7 @@ const TripManagementPage = () => {
       {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý chuyến {/* Sửa text */}
+          Quản lý chuyến 
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +104,11 @@ const TripManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm chuyến mới {/* Sửa text */}
+          Thêm chuyến mới 
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG DỮ LIỆU --- */}
       <TripTable 
         data={data}
         loading={loading}
@@ -114,11 +118,12 @@ const TripManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <TripFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingTrip={editingTrip} // Truyền prop mới
+        editingTrip={editingTrip} 
       />
     </div>
   );

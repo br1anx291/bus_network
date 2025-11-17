@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd'; 
 
-// 1. Import passengerService (sẽ tạo ở bước 4)
+// 1. Import Service
 import { passengerService } from '~/services/passengerService'; 
 import { STATUS_COLOR_MAP } from '../../data/passengerMockData';
 
@@ -11,41 +11,46 @@ const statusOptions = Object.keys(STATUS_COLOR_MAP).map(status => ({
   label: status,
 }));
 
-// 2. Đổi tên component và props
 const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => { 
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
 
-  const isEditing = !!editingPassenger; // Sửa tên prop
+  const isEditing = !!editingPassenger;
 
+  // 2. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
-    if (isEditing) {
-      form.setFieldsValue(editingPassenger);
-    } else {
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        form.setFieldsValue(editingPassenger);
+      } else {
+        form.resetFields();
+      }
     }
-  }, [editingPassenger, form, isEditing]);
+  }, [editingPassenger, form, isEditing, open]);
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // 3. Sửa logic service
       if (isEditing) {
-        await passengerService.updatePassenger(editingPassenger.id, values);
+        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        await passengerService.update(editingPassenger.id, values);
         message.success('Cập nhật hành khách thành công!');
       } else {
-        await passengerService.createPassenger(values);
+        // 4. [NÂNG CẤP] Gọi hàm create
+        await passengerService.create(values);
         message.success('Thêm hành khách mới thành công!');
       }
 
-      onSuccess();
-      onClose();
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin hành khách:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +66,14 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
       forceRender
       width={600}
     >
-      {/* 4. Sửa Form */}
       <Form
         form={form}
         layout="vertical"
-        name="passenger_form" // Sửa tên form
+        name="passenger_form"
         style={{ marginTop: '24px' }}
+        initialValues={{ status: 'Hoạt động' }}
       >
+        {/* TÊN HÀNH KHÁCH */}
         <Form.Item
           name="name"
           label="Tên hành khách"
@@ -76,6 +82,7 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Ví dụ: Lý Thị M" />
         </Form.Item>
 
+        {/* EMAIL */}
         <Form.Item
           name="email"
           label="Email (Tài khoản)"
@@ -87,6 +94,7 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Vi dụ: lym@email.com" />
         </Form.Item>
 
+        {/* SỐ ĐIỆN THOẠI */}
         <Form.Item
           name="phone"
           label="Số điện thoại"
@@ -95,6 +103,7 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Ví dụ: 0901234567" />
         </Form.Item>
 
+        {/* TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

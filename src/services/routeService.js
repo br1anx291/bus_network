@@ -1,15 +1,20 @@
 // src/services/routeService.js
 
-import { rawRouteData } from '../features/routes/data/routeMockData'; // <-- 1. SỬA IMPORT
+// --- [NÂNG CẤP 1] IMPORT AXIOS CLIENT ---
+import axiosClient from '~/api/axiosClient'; 
+import { rawRouteData } from '~/features/routes/data/routeMockData';
 
-// --- Giả lập Database (Lưu trong bộ nhớ) ---
-let routes = [...rawRouteData]; // <-- 2. SỬA TÊN BIẾN
-
-// Giả lập độ trễ mạng (miligiây)
+// --- [NÂNG CẤP 2] CẤU HÌNH CHẾ ĐỘ MOCK ---
+// true: Dùng logic giả lập cũ của bạn
+// false: Gọi API thật (Sau này chỉ cần sửa số này thành false là xong)
+const USE_MOCK = true; 
 const MOCK_DELAY = 500;
 
-// --- Hàm Helper (Giả lập Promise) ---
-const mockApi = (data) => {
+// --- KHO CHỨA DATA GIẢ LẬP (Giữ nguyên logic cũ của bạn) ---
+let localRoutes = [...rawRouteData]; 
+
+// Hàm Helper giả lập độ trễ (Giữ nguyên)
+const mockDelay = (data) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(data);
@@ -17,80 +22,103 @@ const mockApi = (data) => {
   });
 };
 
-// --- Các hàm CRUD ---
+export const routeService = {
+  
+  /**
+   * 1. Lấy danh sách tuyến
+   * [NÂNG CẤP 3] Đổi tên từ 'getRoutes' -> 'getAll' cho chuẩn
+   */
+  getAll: async (page = 1, pageSize = 10) => {
+    // --- NHÁNH 1: CHẠY MOCK (Logic cũ của bạn) ---
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Get Routes - Page: ${page}, Size: ${pageSize}`);
+      
+      const start = (page - 1) * pageSize;
+      const end = page * pageSize;
+      const paginatedData = localRoutes.slice(start, end);
 
-/**
- * Lấy danh sách tuyến (có phân trang giả lập)
- */
-const getRoutes = (page = 1, pageSize = 7) => { // <-- 3. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: getRoutes ---', { page, pageSize });
-
-  const start = (page - 1) * pageSize;
-  const end = page * pageSize;
-
-  const paginatedData = routes.slice(start, end); // <-- 4. SỬA TÊN BIẾN
-
-  return mockApi({
-    data: paginatedData,
-    total: routes.length, // <-- 5. SỬA TÊN BIẾN
-  });
-};
-
-/**
- * Xóa một tuyến dựa trên ID
- */
-const deleteRoute = (id) => { // <-- 6. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: deleteRoute ---', { id });
-
-  routes = routes.filter((r) => r.id !== id); // <-- 7. SỬA TÊN BIẾN
-
-  return mockApi({ success: true });
-};
-
-/**
- * Thêm một tuyến mới
- */
-const createRoute = (data) => { // <-- 8. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: createRoute ---', data);
-
-  const newRoute = {
-    ...data,
-    id: `r${new Date().getTime()}`, // Tạo ID giả
-  };
-
-  routes.unshift(newRoute); // <-- 9. SỬA TÊN BIẾN
-
-  return mockApi({ success: true, route: newRoute });
-};
-
-/**
- * Cập nhật một tuyến dựa trên ID
- */
-const updateRoute = (id, data) => { // <-- 10. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: updateRoute ---', { id, data });
-
-  let targetRoute = null;
-
-  routes = routes.map((r) => { // <-- 11. SỬA TÊN BIẾN
-    if (r.id === id) {
-      targetRoute = { ...r, ...data }; // Cập nhật data
-      return targetRoute;
+      return mockDelay({
+        data: paginatedData,
+        total: localRoutes.length,
+      });
     }
-    return r;
-  });
 
-  if (targetRoute) {
-    return mockApi({ success: true, route: targetRoute });
-  } else {
-    return Promise.reject(new Error('Không tìm thấy tuyến để cập nhật'));
+    // --- [NÂNG CẤP 4] NHÁNH 2: GỌI API THẬT ---
+    // Backend thường nhận: /routes?page=1&limit=10
+    return axiosClient.get('/routes', {
+      params: { page, limit: pageSize }
+    });
+  },
+
+  /**
+   * 2. Lấy chi tiết 1 tuyến (Thêm mới cho đầy đủ)
+   */
+  getById: async (id) => {
+    if (USE_MOCK) {
+      const route = localRoutes.find((r) => r.id === id);
+      return mockDelay(route);
+    }
+    return axiosClient.get(`/routes/${id}`);
+  },
+
+  /**
+   * 3. Tạo tuyến mới
+   * [NÂNG CẤP 5] Đổi tên từ 'createRoute' -> 'create'
+   */
+  create: async (data) => {
+    if (USE_MOCK) {
+      console.log('[MOCK API] Create Route:', data);
+      
+      const newRoute = {
+        ...data,
+        id: `r${new Date().getTime()}`,
+      };
+      
+      localRoutes.unshift(newRoute); // Thêm vào đầu mảng
+
+      return mockDelay(newRoute); // Trả về object vừa tạo (mock)
+      // Hoặc trả về cấu trúc chuẩn: { success: true, data: newRoute }
+    }
+
+    // Gọi API thật
+    return axiosClient.post('/routes', data);
+  },
+
+  /**
+   * 4. Cập nhật tuyến
+   * [NÂNG CẤP 6] Đổi tên từ 'updateRoute' -> 'update'
+   */
+  update: async (id, data) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Update Route ${id}:`, data);
+      
+      const index = localRoutes.findIndex(r => r.id === id);
+      if (index > -1) {
+        // Merge data cũ và mới
+        localRoutes[index] = { ...localRoutes[index], ...data };
+        return mockDelay(localRoutes[index]);
+      }
+      return Promise.reject(new Error('Route not found'));
+    }
+
+    // Gọi API thật
+    return axiosClient.put(`/routes/${id}`, data);
+  },
+
+  /**
+   * 5. Xóa tuyến
+   * [NÂNG CẤP 7] Đổi tên từ 'deleteRoute' -> 'delete'
+   */
+  delete: async (id) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Delete Route ${id}`);
+      
+      localRoutes = localRoutes.filter((r) => r.id !== id);
+      
+      return mockDelay({ success: true });
+    }
+
+    // Gọi API thật
+    return axiosClient.delete(`/routes/${id}`);
   }
-};
-
-
-// --- Xuất ra service ---
-export const routeService = { // <-- 12. SỬA TÊN EXPORT
-  getRoutes,
-  deleteRoute,
-  createRoute,
-  updateRoute,
 };

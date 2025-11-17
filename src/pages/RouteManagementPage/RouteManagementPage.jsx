@@ -14,9 +14,7 @@ import styles from './RouteManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const RouteManagementPage = () => {
-  // --- (State không đổi) ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +27,22 @@ const RouteManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getRoutes
-      const result = await routeService.getRoutes(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await routeService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách tuyến!'); // Sửa text
+      message.error('Lỗi khi tải danh sách tuyến!');
     } finally {
       setLoading(false);
     }
@@ -55,26 +58,26 @@ const RouteManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deleteRoute
-      await routeService.deleteRoute(id); 
-      message.success('Xóa tuyến thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await routeService.delete(id);
+      message.success('Xóa tuyến thành công!');
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa tuyến!'); // Sửa text
+      message.error('Lỗi khi xóa tuyến!');
     }
   };
 
-  // --- 5. SỬA STATE MODAL (cho dễ đọc) ---
+  // --- 5. STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingRoute, setEditingRoute] = useState(null); // Đổi tên state
+  const [editingRoute, setEditingRoute] = useState(null);
 
   const handleOpenAddModal = () => {
-    setEditingRoute(null); // Đổi tên state
+    setEditingRoute(null);
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (route) => { // Đổi tên param
-    setEditingRoute(route); // Đổi tên state
+  const handleOpenEditModal = (route) => {
+    setEditingRoute(route);
     setIsModalOpen(true);
   };
 
@@ -92,7 +95,7 @@ const RouteManagementPage = () => {
       {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý tuyến {/* Sửa text */}
+          Quản lý tuyến
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +103,11 @@ const RouteManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm tuyến mới {/* Sửa text */}
+          Thêm tuyến mới
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG --- */}
       <RouteTable 
         data={data}
         loading={loading}
@@ -114,11 +117,12 @@ const RouteManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <RouteFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingRoute={editingRoute} // Truyền prop mới
+        editingRoute={editingRoute}
       />
     </div>
   );

@@ -1,114 +1,147 @@
 // src/features/vehicles/components/VehicleFormModal/VehicleFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, InputNumber, Select, message } from 'antd';
-import { vehicleService } from '../../../../services/vehicleService';
-// (Chúng ta có thể import map màu từ data để dùng cho Select)
-// import { STATUS_COLOR_MAP } from '../../data/vehicleMockData';
+// Import Service từ đường dẫn chính xác (nếu bạn dùng alias ~ thì sửa lại nhé)
+import { vehicleService } from '~/services/vehicleService'; 
 
-// Lấy các lựa chọn trạng thái
+// Cập nhật option cho khớp với Mock Data và Logic màu sắc
 const statusOptions = [
   { value: 'Đang chạy', label: 'Đang chạy' },
   { value: 'Bảo trì', label: 'Bảo trì' },
-  { value: 'Ngưng hoạt động', label: 'Ngưng hoạt động' },
-  { value: 'N/A', label: 'N/A' },
+  { value: 'Không hoạt động', label: 'Không hoạt động' },
+];
+
+const typeOptions = [
+  { value: 'Xe 16 chỗ', label: 'Xe 16 chỗ' },
+  { value: 'Xe 29 chỗ', label: 'Xe 29 chỗ' },
+  { value: 'Xe 45 chỗ', label: 'Xe 45 chỗ' },
+  { value: 'Xe giường nằm', label: 'Xe giường nằm' },
 ];
 
 const VehicleFormModal = ({ open, onClose, onSuccess, editingVehicle }) => {
-  const [form] = Form.useForm(); // Hook của Antd để điều khiển Form
+  const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. Xác định xem đây là chế độ "Sửa" hay "Thêm"
-  const isEditing = !!editingVehicle; // Nếu có editingVehicle -> true
+  const isEditing = !!editingVehicle;
 
-  // 2. Tự động điền form khi 'editingVehicle' thay đổi
   useEffect(() => {
-    if (isEditing) {
-      // Chế độ Sửa: Đặt giá trị cho form
-      form.setFieldsValue(editingVehicle);
-    } else {
-      // Chế độ Thêm: Xóa trắng form
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        // Điền dữ liệu khi sửa
+        form.setFieldsValue({
+          plate: editingVehicle.plate,         // Khớp với key 'plate' trong data
+          model: editingVehicle.model,         // Thêm model
+          type: editingVehicle.type,           // Thêm type
+          capacity: editingVehicle.capacity,
+          status: editingVehicle.status,
+          routeName: editingVehicle.routeName  // Khớp với key 'routeName'
+        });
+      } else {
+        // Reset form khi thêm mới
+        form.resetFields();
+      }
     }
-  }, [editingVehicle, form, isEditing]); // Chạy lại khi modal mở ra
+  }, [editingVehicle, form, isEditing, open]);
 
-  // 3. Hàm xử lý khi nhấn nút "OK" (Gửi form)
   const handleOk = async () => {
     try {
-      // Kiểm tra validation
       const values = await form.validateFields();
       setIsLoading(true);
 
       if (isEditing) {
-        // Logic CẬP NHẬT
-        await vehicleService.updateVehicle(editingVehicle.id, values);
+        // Logic CẬP NHẬT: Truyền ID riêng và Data riêng
+        await vehicleService.update(editingVehicle.id, values);
         message.success('Cập nhật xe thành công!');
       } else {
         // Logic THÊM MỚI
-        await vehicleService.createVehicle(values);
+        await vehicleService.create(values);
         message.success('Thêm xe mới thành công!');
       }
 
-      onSuccess(); // Báo cho cha (trang) biết để tải lại bảng
-      onClose(); // Đóng modal
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
-      // Lỗi validation hoặc lỗi từ service
       console.error('Lỗi khi lưu thông tin xe:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      // Nếu lỗi không phải do validate (lỗi API/Service)
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 4. Render
   return (
     <Modal
       title={isEditing ? 'Chỉnh sửa thông tin xe' : 'Thêm xe mới'}
       open={open}
       onCancel={onClose}
-      onOk={handleOk} // <-- Gắn hàm xử lý vào nút OK
-      confirmLoading={isLoading} // <-- Nút OK sẽ xoay khi loading
-      forceRender // Cần thiết để form khởi tạo đúng cách
+      onOk={handleOk}
+      confirmLoading={isLoading}
+      okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
+      cancelText="Hủy bỏ"
+      forceRender
     >
       <Form
         form={form}
         layout="vertical"
         name="vehicle_form"
         style={{ marginTop: '24px' }}
+        // Giá trị mặc định cho form thêm mới
+        initialValues={{ status: 'Đang chạy', capacity: 16 }} 
       >
+        {/* 1. BIỂN SỐ XE */}
         <Form.Item
-          name="licensePlate"
+          name="plate" // Đã đổi từ licensePlate -> plate
           label="Biển số xe"
           rules={[{ required: true, message: 'Vui lòng nhập biển số!' }]}
         >
           <Input placeholder="Ví dụ: 50H-12345" />
         </Form.Item>
 
+        {/* 2. MẪU XE (Thêm mới) */}
         <Form.Item
-          name="capacity"
-          label="Sức chứa"
-          rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
+          name="model"
+          label="Mẫu xe"
+          rules={[{ required: true, message: 'Vui lòng nhập mẫu xe!' }]}
         >
-          <InputNumber min={1} style={{ width: '100%' }} placeholder="Ví dụ: 40" />
+          <Input placeholder="Ví dụ: Ford Transit" />
         </Form.Item>
 
+        {/* 3. LOẠI XE (Thêm mới) */}
+        <Form.Item
+          name="type"
+          label="Loại xe"
+          rules={[{ required: true, message: 'Vui lòng chọn loại xe!' }]}
+        >
+          <Select options={typeOptions} placeholder="Chọn loại xe" />
+        </Form.Item>
+
+        {/* 4. SỨC CHỨA */}
+        <Form.Item
+          name="capacity"
+          label="Sức chứa (số ghế)"
+          rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
+        >
+          <InputNumber min={4} max={60} style={{ width: '100%' }} />
+        </Form.Item>
+
+        {/* 5. TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"
           rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
         >
-          <Select
-            options={statusOptions}
-            placeholder="Chọn trạng thái"
-          />
+          <Select options={statusOptions} placeholder="Chọn trạng thái" />
         </Form.Item>
 
+        {/* 6. TUYẾN (Optional) */}
         <Form.Item
-          name="currentRoute"
+          name="routeName" // Đã đổi từ currentRoute -> routeName
           label="Đang ở tuyến"
-          rules={[{ required: true, message: 'Vui lòng nhập tuyến!' }]}
         >
-          <Input placeholder="Ví dụ: Tuyến 05 (Hoặc 'N/A' nếu không có)" />
+          <Input placeholder="Ví dụ: Tuyến 05" />
         </Form.Item>
       </Form>
     </Modal>

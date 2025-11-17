@@ -1,53 +1,56 @@
 // src/features/drivers/components/DriverFormModal/DriverFormModal.jsx
 import React, { useEffect, useState } from 'react';
-// 1. Import (không cần DatePicker)
 import { Modal, Form, Input, Select, message } from 'antd'; 
 
-// 2. Import driverService (sẽ tạo ở bước 2)
+// 1. Import Service
 import { driverService } from '~/services/driverService'; 
 import { STATUS_COLOR_MAP } from '../../data/driverMockData';
 
-// 3. Lấy status options
 const statusOptions = Object.keys(STATUS_COLOR_MAP).map(status => ({
   value: status,
   label: status,
 }));
 
-// 4. Đổi tên component và props
 const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => { 
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
 
-  const isEditing = !!editingDriver; // Sửa tên prop
+  const isEditing = !!editingDriver;
 
+  // 2. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
-    if (isEditing) {
-      form.setFieldsValue(editingDriver);
-    } else {
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        form.setFieldsValue(editingDriver);
+      } else {
+        form.resetFields();
+      }
     }
-  }, [editingDriver, form, isEditing]);
+  }, [editingDriver, form, isEditing, open]);
 
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // 5. Sửa logic service
       if (isEditing) {
-        await driverService.updateDriver(editingDriver.id, values);
+        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        await driverService.update(editingDriver.id, values);
         message.success('Cập nhật tài xế thành công!');
       } else {
-        await driverService.createDriver(values);
+        // 4. [NÂNG CẤP] Gọi hàm create
+        await driverService.create(values);
         message.success('Thêm tài xế mới thành công!');
       }
 
-      onSuccess();
-      onClose();
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin tài xế:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -61,15 +64,16 @@ const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => {
       onOk={handleOk}
       confirmLoading={isLoading}
       forceRender
-      width={600} // Giữ nguyên chiều rộng cho đẹp
+      width={600}
     >
-      {/* 6. Sửa Form */}
       <Form
         form={form}
         layout="vertical"
-        name="driver_form" // Sửa tên form
+        name="driver_form"
         style={{ marginTop: '24px' }}
+        initialValues={{ status: 'Hoạt động' }}
       >
+        {/* TÊN TÀI XẾ */}
         <Form.Item
           name="name"
           label="Tên tài xế"
@@ -78,6 +82,7 @@ const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => {
           <Input placeholder="Ví dụ: Nguyễn Văn A" />
         </Form.Item>
 
+        {/* EMAIL */}
         <Form.Item
           name="email"
           label="Email"
@@ -89,6 +94,7 @@ const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => {
           <Input placeholder="Vi dụ: vana@bus.com" />
         </Form.Item>
 
+        {/* GIẤY PHÉP LÁI XE */}
         <Form.Item
           name="licenseNumber"
           label="Số giấy phép lái xe"
@@ -97,6 +103,7 @@ const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => {
           <Input placeholder="Ví dụ: A1-12345" />
         </Form.Item>
 
+        {/* SỐ ĐIỆN THOẠI */}
         <Form.Item
           name="phone"
           label="Số điện thoại"
@@ -105,6 +112,7 @@ const DriverFormModal = ({ open, onClose, onSuccess, editingDriver }) => {
           <Input placeholder="Ví dụ: 0905111222" />
         </Form.Item>
 
+        {/* TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

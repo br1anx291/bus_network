@@ -1,14 +1,16 @@
 // src/services/tripService.js
-import { rawTripData } from '~/features/trips/data/tripMockData'; // <-- 1. SỬA IMPORT
+import axiosClient from '~/api/axiosClient';
+import { rawTripData } from '~/features/trips/data/tripMockData';
 
-// --- Giả lập Database (Lưu trong bộ nhớ) ---
-let trips = [...rawTripData]; // <-- 2. SỬA TÊN BIẾN
-
-// Giả lập độ trễ mạng (miligiây)
+// --- CẤU HÌNH CHẾ ĐỘ ---
+const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
 const MOCK_DELAY = 500;
 
-// --- Hàm Helper (Giả lập Promise) ---
-const mockApi = (data) => {
+// --- KHO DATA GIẢ LẬP ---
+let localTrips = [...rawTripData];
+
+// Hàm Helper giả lập độ trễ
+const mockDelay = (data) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(data);
@@ -16,81 +18,99 @@ const mockApi = (data) => {
   });
 };
 
-// --- Các hàm CRUD ---
+export const tripService = {
+  
+  /**
+   * 1. Lấy danh sách chuyến (Phân trang)
+   * [ĐỔI TÊN] getTrips -> getAll
+   */
+  getAll: async (page = 1, pageSize = 10) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Get Trips - Page: ${page}, Size: ${pageSize}`);
+      
+      const start = (page - 1) * pageSize;
+      const end = page * pageSize;
+      const paginatedData = localTrips.slice(start, end);
 
-/**
- * Lấy danh sách chuyến (có phân trang giả lập)
- */
-const getTrips = (page = 1, pageSize = 7) => { // <-- 3. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: getTrips ---', { page, pageSize });
-
-  const start = (page - 1) * pageSize;
-  const end = page * pageSize;
-
-  const paginatedData = trips.slice(start, end); // <-- 4. SỬA TÊN BIẾN
-
-  return mockApi({
-    data: paginatedData,
-    total: trips.length, // <-- 5. SỬA TÊN BIẾN
-  });
-};
-
-/**
- * Xóa một chuyến dựa trên ID
- */
-const deleteTrip = (id) => { // <-- 6. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: deleteTrip ---', { id });
-
-  trips = trips.filter((t) => t.id !== id); // <-- 7. SỬA TÊN BIẾN
-
-  return mockApi({ success: true });
-};
-
-/**
- * Thêm một chuyến mới
- */
-const createTrip = (data) => { // <-- 8. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: createTrip ---', data);
-
-  // Data giờ đã có 'routeName', 'vehiclePlate', 'driverName', 'startTime', 'endTime', 'status'
-  const newTrip = {
-    ...data,
-    id: `t${new Date().getTime()}`, // Tạo ID giả
-  };
-
-  trips.unshift(newTrip); // <-- 9. SỬA TÊN BIẾN
-
-  return mockApi({ success: true, trip: newTrip });
-};
-
-/**
- * Cập nhật một chuyến dựa trên ID
- */
-const updateTrip = (id, data) => { // <-- 10. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: updateTrip ---', { id, data });
-
-  let targetTrip = null;
-
-  trips = trips.map((t) => { // <-- 11. SỬA TÊN BIẾN
-    if (t.id === id) {
-      targetTrip = { ...t, ...data }; // Cập nhật data
-      return targetTrip;
+      return mockDelay({
+        data: paginatedData,
+        total: localTrips.length,
+      });
     }
-    return t;
-  });
 
-  if (targetTrip) {
-    return mockApi({ success: true, trip: targetTrip });
-  } else {
-    return Promise.reject(new Error('Không tìm thấy chuyến để cập nhật'));
+    // Gọi API thật: GET /trips?page=1&limit=10
+    return axiosClient.get('/trips', {
+      params: { page, limit: pageSize }
+    });
+  },
+
+  /**
+   * 2. Lấy chi tiết 1 chuyến
+   */
+  getById: async (id) => {
+    if (USE_MOCK) {
+      const trip = localTrips.find(t => t.id === id);
+      return mockDelay(trip);
+    }
+    return axiosClient.get(`/trips/${id}`);
+  },
+
+  /**
+   * 3. Thêm chuyến mới
+   * [ĐỔI TÊN] createTrip -> create
+   */
+  create: async (data) => {
+    if (USE_MOCK) {
+      console.log('[MOCK API] Create Trip:', data);
+
+      const newTrip = {
+        ...data,
+        id: `t${new Date().getTime()}`, // Tạo ID giả
+      };
+
+      localTrips.unshift(newTrip);
+
+      return mockDelay(newTrip);
+    }
+
+    // Gọi API thật: POST /trips
+    return axiosClient.post('/trips', data);
+  },
+
+  /**
+   * 4. Cập nhật chuyến
+   * [ĐỔI TÊN] updateTrip -> update
+   */
+  update: async (id, data) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Update Trip ${id}:`, data);
+
+      const index = localTrips.findIndex(t => t.id === id);
+      if (index > -1) {
+        localTrips[index] = { ...localTrips[index], ...data };
+        return mockDelay(localTrips[index]);
+      }
+      return Promise.reject(new Error('Trip not found'));
+    }
+
+    // Gọi API thật: PUT /trips/:id
+    return axiosClient.put(`/trips/${id}`, data);
+  },
+
+  /**
+   * 5. Xóa chuyến
+   * [ĐỔI TÊN] deleteTrip -> delete
+   */
+  delete: async (id) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Delete Trip ${id}`);
+
+      localTrips = localTrips.filter(t => t.id !== id);
+
+      return mockDelay({ success: true });
+    }
+
+    // Gọi API thật: DELETE /trips/:id
+    return axiosClient.delete(`/trips/${id}`);
   }
-};
-
-
-// --- Xuất ra service ---
-export const tripService = { // <-- 12. SỬA TÊN EXPORT
-  getTrips,
-  deleteTrip,
-  createTrip,
-  updateTrip,
 };

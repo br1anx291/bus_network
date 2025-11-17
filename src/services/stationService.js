@@ -1,14 +1,16 @@
 // src/services/stationService.js
-import { rawStationData } from '~/features/stations/data/stationMockData'; // <-- 1. SỬA IMPORT
+import axiosClient from '~/api/axiosClient';
+import { rawStationData } from '~/features/stations/data/stationMockData';
 
-// --- Giả lập Database (Lưu trong bộ nhớ) ---
-let stations = [...rawStationData]; // <-- 2. SỬA TÊN BIẾN
-
-// Giả lập độ trễ mạng (miligiây)
+// --- CẤU HÌNH CHẾ ĐỘ ---
+const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
 const MOCK_DELAY = 500;
 
-// --- Hàm Helper (Giả lập Promise) ---
-const mockApi = (data) => {
+// --- KHO DATA GIẢ LẬP ---
+let localStations = [...rawStationData];
+
+// Hàm Helper giả lập độ trễ
+const mockDelay = (data) => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve(data);
@@ -16,81 +18,99 @@ const mockApi = (data) => {
   });
 };
 
-// --- Các hàm CRUD ---
+export const stationService = {
+  
+  /**
+   * 1. Lấy danh sách trạm (Phân trang)
+   * [ĐỔI TÊN] getStations -> getAll
+   */
+  getAll: async (page = 1, pageSize = 10) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Get Stations - Page: ${page}, Size: ${pageSize}`);
+      
+      const start = (page - 1) * pageSize;
+      const end = page * pageSize;
+      const paginatedData = localStations.slice(start, end);
 
-/**
- * Lấy danh sách trạm (có phân trang giả lập)
- */
-const getStations = (page = 1, pageSize = 7) => { // <-- 3. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: getStations ---', { page, pageSize });
-
-  const start = (page - 1) * pageSize;
-  const end = page * pageSize;
-
-  const paginatedData = stations.slice(start, end); // <-- 4. SỬA TÊN BIẾN
-
-  return mockApi({
-    data: paginatedData,
-    total: stations.length, // <-- 5. SỬA TÊN BIẾN
-  });
-};
-
-/**
- * Xóa một trạm dựa trên ID
- */
-const deleteStation = (id) => { // <-- 6. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: deleteStation ---', { id });
-
-  stations = stations.filter((s) => s.id !== id); // <-- 7. SỬA TÊN BIẾN
-
-  return mockApi({ success: true });
-};
-
-/**
- * Thêm một trạm mới
- */
-const createStation = (data) => { // <-- 8. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: createStation ---', data);
-
-  // Data giờ đã có 'name', 'lat', 'lon', 'status'
-  const newStation = {
-    ...data,
-    id: `s${new Date().getTime()}`, // Tạo ID giả
-  };
-
-  stations.unshift(newStation); // <-- 9. SỬA TÊN BIẾN
-
-  return mockApi({ success: true, station: newStation });
-};
-
-/**
- * Cập nhật một trạm dựa trên ID
- */
-const updateStation = (id, data) => { // <-- 10. SỬA TÊN HÀM
-  console.log('--- MOCK SERVICE: updateStation ---', { id, data });
-
-  let targetStation = null;
-
-  stations = stations.map((s) => { // <-- 11. SỬA TÊN BIẾN
-    if (s.id === id) {
-      targetStation = { ...s, ...data }; // Cập nhật data
-      return targetStation;
+      return mockDelay({
+        data: paginatedData,
+        total: localStations.length,
+      });
     }
-    return s;
-  });
 
-  if (targetStation) {
-    return mockApi({ success: true, station: targetStation });
-  } else {
-    return Promise.reject(new Error('Không tìm thấy trạm để cập nhật'));
+    // Gọi API thật: GET /stations?page=1&limit=10
+    return axiosClient.get('/stations', {
+      params: { page, limit: pageSize }
+    });
+  },
+
+  /**
+   * 2. Lấy chi tiết 1 trạm (Bổ sung thêm cho đầy đủ)
+   */
+  getById: async (id) => {
+    if (USE_MOCK) {
+      const station = localStations.find(s => s.id === id);
+      return mockDelay(station);
+    }
+    return axiosClient.get(`/stations/${id}`);
+  },
+
+  /**
+   * 3. Thêm trạm mới
+   * [ĐỔI TÊN] createStation -> create
+   */
+  create: async (data) => {
+    if (USE_MOCK) {
+      console.log('[MOCK API] Create Station:', data);
+
+      const newStation = {
+        ...data,
+        id: `s${new Date().getTime()}`, // Tạo ID giả
+      };
+
+      localStations.unshift(newStation);
+
+      return mockDelay(newStation);
+    }
+
+    // Gọi API thật: POST /stations
+    return axiosClient.post('/stations', data);
+  },
+
+  /**
+   * 4. Cập nhật trạm
+   * [ĐỔI TÊN] updateStation -> update
+   */
+  update: async (id, data) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Update Station ${id}:`, data);
+
+      const index = localStations.findIndex(s => s.id === id);
+      if (index > -1) {
+        localStations[index] = { ...localStations[index], ...data };
+        return mockDelay(localStations[index]);
+      }
+      return Promise.reject(new Error('Station not found'));
+    }
+
+    // Gọi API thật: PUT /stations/:id
+    return axiosClient.put(`/stations/${id}`, data);
+  },
+
+  /**
+   * 5. Xóa trạm
+   * [ĐỔI TÊN] deleteStation -> delete
+   */
+  delete: async (id) => {
+    if (USE_MOCK) {
+      console.log(`[MOCK API] Delete Station ${id}`);
+
+      localStations = localStations.filter(s => s.id !== id);
+
+      return mockDelay({ success: true });
+    }
+
+    // Gọi API thật: DELETE /stations/:id
+    return axiosClient.delete(`/stations/${id}`);
   }
-};
-
-
-// --- Xuất ra service ---
-export const stationService = { // <-- 12. SỬA TÊN EXPORT
-  getStations,
-  deleteStation,
-  createStation,
-  updateStation,
 };

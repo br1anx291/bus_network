@@ -14,9 +14,8 @@ import styles from './StationManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const StationManagementPage = () => {
-  // --- (State không đổi) ---
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +28,22 @@ const StationManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getStations
-      const result = await stationService.getStations(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await stationService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách trạm!'); // Sửa text
+      message.error('Lỗi khi tải danh sách trạm!'); 
     } finally {
       setLoading(false);
     }
@@ -55,26 +59,26 @@ const StationManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deleteStation
-      await stationService.deleteStation(id); 
-      message.success('Xóa trạm thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await stationService.delete(id); 
+      message.success('Xóa trạm thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa trạm!'); // Sửa text
+      message.error('Lỗi khi xóa trạm!'); 
     }
   };
 
-  // --- 5. SỬA STATE MODAL (cho dễ đọc) ---
+  // --- 5. STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingStation, setEditingStation] = useState(null); // Đổi tên state
+  const [editingStation, setEditingStation] = useState(null); 
 
   const handleOpenAddModal = () => {
-    setEditingStation(null); // Đổi tên state
+    setEditingStation(null); 
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (station) => { // Đổi tên param
-    setEditingStation(station); // Đổi tên state
+  const handleOpenEditModal = (station) => { 
+    setEditingStation(station); 
     setIsModalOpen(true);
   };
 
@@ -89,10 +93,10 @@ const StationManagementPage = () => {
 
   return (
     <div className={styles.pageContainer}>
-      {/* --- HEADER CỦA TRANG --- */}
+      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý trạm {/* Sửa text */}
+          Quản lý trạm 
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +104,11 @@ const StationManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm trạm mới {/* Sửa text */}
+          Thêm trạm mới 
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG --- */}
       <StationTable 
         data={data}
         loading={loading}
@@ -114,11 +118,12 @@ const StationManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <StationFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingStation={editingStation} // Truyền prop mới
+        editingStation={editingStation} 
       />
     </div>
   );

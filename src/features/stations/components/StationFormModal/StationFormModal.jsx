@@ -1,13 +1,14 @@
 // src/features/stations/components/StationFormModal/StationFormModal.jsx
 import React, { useEffect, useState } from 'react';
-// 1. Import thêm InputNumber, Row, Col
-import { Modal, Form, Input, Select, message, InputNumber, Row, Col } from 'antd'; 
+import { Modal, Form, Input, Select, message, InputNumber, Row, Col } from 'antd';
 
+// 1. Import Service
 import { stationService } from '~/services/stationService'; 
 
 const statusOptions = [
-  { value: 'Đang hoạt động', label: 'Đang hoạt động' },
-  { value: 'Tạm ngưng', label: 'Tạm ngưng' },
+  { value: 'Hoạt động', label: 'Hoạt động' },
+  { value: 'Bảo trì', label: 'Bảo trì' },
+  { value: 'Không hoạt động', label: 'Không hoạt động' },
 ];
 
 const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => { 
@@ -15,13 +16,22 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!editingStation;
 
+  // 2. Đổ dữ liệu vào form
   useEffect(() => {
-    if (isEditing) {
-      form.setFieldsValue(editingStation);
-    } else {
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        form.setFieldsValue({
+          name: editingStation.name,
+          address: editingStation.address, // Thêm address
+          lat: editingStation.lat,
+          lon: editingStation.lon,
+          status: editingStation.status,
+        });
+      } else {
+        form.resetFields();
+      }
     }
-  }, [editingStation, form, isEditing]);
+  }, [editingStation, form, isEditing, open]);
 
   const handleOk = async () => {
     try {
@@ -29,19 +39,23 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
       setIsLoading(true);
 
       if (isEditing) {
-        await stationService.updateStation(editingStation.id, values);
+        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        await stationService.update(editingStation.id, values);
         message.success('Cập nhật trạm thành công!');
       } else {
-        await stationService.createStation(values);
+        // 4. [NÂNG CẤP] Gọi hàm create
+        await stationService.create(values);
         message.success('Thêm trạm mới thành công!');
       }
 
-      onSuccess();
-      onClose();
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin trạm:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -54,15 +68,18 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={isLoading}
+      okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
+      cancelText="Hủy bỏ"
       forceRender
     >
-      {/* 2. SỬA FORM */}
       <Form
         form={form}
         layout="vertical"
         name="station_form"
         style={{ marginTop: '24px' }}
+        initialValues={{ status: 'Hoạt động' }}
       >
+        {/* 1. TÊN TRẠM */}
         <Form.Item
           name="name"
           label="Tên trạm"
@@ -71,7 +88,16 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           <Input placeholder="Ví dụ: Bến Thành" />
         </Form.Item>
 
-        {/* 3. Thêm Row/Col cho Lat/Lon */}
+        {/* 2. ĐỊA CHỈ (Thêm mới) */}
+        <Form.Item
+          name="address"
+          label="Địa chỉ"
+          rules={[{ required: true, message: 'Vui lòng nhập địa chỉ!' }]}
+        >
+          <Input placeholder="Ví dụ: Quận 1, TP.HCM" />
+        </Form.Item>
+
+        {/* 3. TỌA ĐỘ (LAT/LON) */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -101,6 +127,7 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           </Col>
         </Row>
 
+        {/* 4. TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

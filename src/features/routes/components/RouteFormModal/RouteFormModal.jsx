@@ -2,13 +2,13 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message, InputNumber } from 'antd';
 
-// 1. Import routeService (chưa tạo, nhưng ta import trước)
+// 1. Import routeService
 import { routeService } from '~/services/routeService'; 
-// import { routeService } from '../../../services/routeService'; // Dùng đường dẫn này nếu bạn chưa setup `~/`
 
 const statusOptions = [
   { value: 'Đang hoạt động', label: 'Đang hoạt động' },
   { value: 'Tạm ngưng', label: 'Tạm ngưng' },
+  { value: 'Bảo trì', label: 'Bảo trì' },
 ];
 
 const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
@@ -17,13 +17,21 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
 
   const isEditing = !!editingRoute;
 
+  // 2. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
-    if (isEditing) {
-      form.setFieldsValue(editingRoute);
-    } else {
-      form.resetFields();
+    if (open) {
+      if (isEditing) {
+        form.setFieldsValue({
+          name: editingRoute.name,
+          description: editingRoute.description, // Thêm trường này
+          numStops: editingRoute.numStops,       // Sửa stopsCount -> numStops
+          status: editingRoute.status,
+        });
+      } else {
+        form.resetFields();
+      }
     }
-  }, [editingRoute, form, isEditing]);
+  }, [editingRoute, form, isEditing, open]);
 
   const handleOk = async () => {
     try {
@@ -31,20 +39,23 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
       setIsLoading(true);
 
       if (isEditing) {
-        // 2. Sửa logic service
-        await routeService.updateRoute(editingRoute.id, values);
+        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        await routeService.update(editingRoute.id, values);
         message.success('Cập nhật tuyến thành công!');
       } else {
-        await routeService.createRoute(values);
+        // 4. [NÂNG CẤP] Gọi hàm create
+        await routeService.create(values);
         message.success('Thêm tuyến mới thành công!');
       }
 
-      onSuccess();
-      onClose();
+      onSuccess(); // Tải lại bảng
+      onClose();   // Đóng modal
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin tuyến:', error);
-      message.error(error.message || 'Đã có lỗi xảy ra');
+      if (error.message) {
+         message.error(error.message || 'Đã có lỗi xảy ra');
+      }
     } finally {
       setIsLoading(false);
     }
@@ -57,39 +68,45 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={isLoading}
+      okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
+      cancelText="Hủy bỏ"
       forceRender
     >
-      {/* 3. Sửa Form */}
       <Form
         form={form}
         layout="vertical"
         name="route_form"
         style={{ marginTop: '24px' }}
+        initialValues={{ status: 'Đang hoạt động', numStops: 10 }}
       >
-        <Form.Item
-          name="code"
-          label="Mã tuyến"
-          rules={[{ required: true, message: 'Vui lòng nhập mã tuyến!' }]}
-        >
-          <Input placeholder="Ví dụ: Tuyến 01" />
-        </Form.Item>
-
+        {/* FIELD 1: TÊN TUYẾN */}
         <Form.Item
           name="name"
           label="Tên tuyến"
           rules={[{ required: true, message: 'Vui lòng nhập tên tuyến!' }]}
         >
-          <Input placeholder="Ví dụ: Bến Thành - Chợ Lớn" />
+          <Input placeholder="Ví dụ: Tuyến 01" />
         </Form.Item>
         
+        {/* FIELD 2: MÔ TẢ (Thêm mới cho khớp Table) */}
         <Form.Item
-          name="stopsCount"
+          name="description"
+          label="Mô tả lộ trình"
+          rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
+        >
+          <Input placeholder="Ví dụ: Bến Thành - Bến xe Miền Tây" />
+        </Form.Item>
+
+        {/* FIELD 3: SỐ TRẠM (Đổi tên biến cho khớp Data) */}
+        <Form.Item
+          name="numStops" 
           label="Số trạm dừng"
           rules={[{ required: true, message: 'Vui lòng nhập số trạm!' }]}
         >
           <InputNumber min={1} style={{ width: '100%' }} placeholder="Ví dụ: 15" />
         </Form.Item>
 
+        {/* FIELD 4: TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

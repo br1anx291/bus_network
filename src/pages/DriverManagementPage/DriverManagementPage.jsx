@@ -14,9 +14,8 @@ import styles from './DriverManagementPage.module.css';
 
 const { Title } = Typography;
 
-// 3. Đổi tên Component
 const DriverManagementPage = () => {
-  // --- (State không đổi) ---
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -29,17 +28,22 @@ const DriverManagementPage = () => {
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM getDrivers
-      const result = await driverService.getDrivers(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [NÂNG CẤP 1] GỌI HÀM getAll
+      const result = await driverService.getAll(page, pageSize);
+      
+      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách tài xế!'); // Sửa text
+      message.error('Lỗi khi tải danh sách tài xế!');
     } finally {
       setLoading(false);
     }
@@ -55,26 +59,26 @@ const DriverManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // GỌI HÀM deleteDriver
-      await driverService.deleteDriver(id); 
-      message.success('Xóa tài xế thành công!'); // Sửa text
+      // [NÂNG CẤP 2] GỌI HÀM delete
+      await driverService.delete(id); 
+      message.success('Xóa tài xế thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa tài xế!'); // Sửa text
+      message.error('Lỗi khi xóa tài xế!');
     }
   };
 
   // --- 5. SỬA STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingDriver, setEditingDriver] = useState(null); // Đổi tên state
+  const [editingDriver, setEditingDriver] = useState(null); 
 
   const handleOpenAddModal = () => {
-    setEditingDriver(null); // Đổi tên state
+    setEditingDriver(null); 
     setIsModalOpen(true);
   };
 
-  const handleOpenEditModal = (driver) => { // Đổi tên param
-    setEditingDriver(driver); // Đổi tên state
+  const handleOpenEditModal = (driver) => { 
+    setEditingDriver(driver); 
     setIsModalOpen(true);
   };
 
@@ -92,7 +96,7 @@ const DriverManagementPage = () => {
       {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý tài xế {/* Sửa text */}
+          Quản lý tài xế 
         </Title>
         <Button 
           type="primary" 
@@ -100,11 +104,11 @@ const DriverManagementPage = () => {
           size="large"
           onClick={handleOpenAddModal}
         >
-          Thêm tài xế mới {/* Sửa text */}
+          Thêm tài xế mới 
         </Button>
       </Flex>
 
-      {/* --- 6. SỬA COMPONENT CON --- */}
+      {/* --- BẢNG DỮ LIỆU --- */}
       <DriverTable 
         data={data}
         loading={loading}
@@ -114,11 +118,12 @@ const DriverManagementPage = () => {
         onDelete={handleDelete}
       />
 
+      {/* --- MODAL --- */}
       <DriverFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
-        editingDriver={editingDriver} // Truyền prop mới
+        editingDriver={editingDriver} 
       />
     </div>
   );

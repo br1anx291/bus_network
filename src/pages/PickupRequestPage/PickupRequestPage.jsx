@@ -8,21 +8,33 @@ import styles from './PickupRequestPage.module.css';
 const { Title } = Typography;
 
 const PickupRequestPage = () => {
-  // (State và fetchData, useEffect... giữ nguyên)
+  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [pagination, setPagination] = useState({ /*...*/ });
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 7,
+    total: 0,
+  });
 
+  // --- 1. FETCH DATA (Đã nâng cấp) ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      const result = await pickupRequestService.getPickupRequests(page, pageSize); 
-      const mappedData = result.data.map((item) => ({ ...item, key: item.id }));
+      // [ĐỔI TÊN] getPickupRequests -> getAll
+      const result = await pickupRequestService.getAll(page, pageSize);
+      
+      // [NÂNG CẤP] Xử lý data an toàn cho cả Mock và API
+      const list = result.data || result || [];
+      const totalCount = result.total || list.length || 0;
+
+      const mappedData = list.map((item) => ({ ...item, key: item.id }));
+      
       setData(mappedData);
       setPagination({
         ...pagination,
         current: page,
-        total: result.total,
+        total: totalCount,
       });
     } catch (error) {
       message.error('Lỗi khi tải danh sách yêu cầu đón!');
@@ -37,14 +49,14 @@ const PickupRequestPage = () => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
 
-  // --- THÊM CÁC HÀM MỚI Ở ĐÂY ---
-
-  // Hàm chung để xử lý cập nhật
+  // --- 2. CẬP NHẬT TRẠNG THÁI (Đã nâng cấp) ---
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      await pickupRequestService.updatePickupRequestStatus(id, newStatus);
+      // [ĐỔI TÊN] updatePickupRequestStatus -> updateStatus
+      await pickupRequestService.updateStatus(id, newStatus);
+      
       message.success(`Đã ${newStatus === 'Đã duyệt' ? 'duyệt' : 'hủy'} yêu cầu!`);
-      fetchData(pagination.current, pagination.pageSize); // Tải lại bảng
+      fetchData(pagination.current, pagination.pageSize); 
     } catch (error) {
       message.error('Lỗi khi cập nhật trạng thái!');
     }
@@ -59,7 +71,6 @@ const PickupRequestPage = () => {
   const handleDeny = (id) => {
     handleUpdateStatus(id, 'Đã hủy');
   };
-  // --- HẾT PHẦN THÊM ---
 
   return (
     <div className={styles.pageContainer}>
@@ -69,14 +80,13 @@ const PickupRequestPage = () => {
         </Title>
       </Flex>
 
-      {/* --- CẬP NHẬT PROPS TRUYỀN XUỐNG --- */}
       <PickupRequestTable 
         data={data}
         loading={loading}
         pagination={pagination}
         onTableChange={handleTableChange}
-        onApprove={handleApprove} // <-- Truyền xuống
-        onDeny={handleDeny}     // <-- Truyền xuống
+        onApprove={handleApprove} 
+        onDeny={handleDeny}     
       />
     </div>
   );
