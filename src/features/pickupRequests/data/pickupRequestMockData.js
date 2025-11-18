@@ -1,12 +1,39 @@
 // src/features/pickupRequests/data/pickupRequestMockData.js
 
-// Dữ liệu thô - Giả lập database
-// Chúng ta sẽ "giả" luôn tên User/Trạm/Tuyến cho dễ nhìn
+// Dữ liệu thô - Giả lập database (MASTER VERSION - DA NANG)
 export const rawPickupRequestData = [
-  { id: 'pr1', userName: 'Lý Thị M', stationName: 'Bến Thành', tripName: 'Tuyến 01', requestTime: '10:30 AM 25/10/2025', status: 'Đang chờ' },
-  { id: 'pr2', userName: 'Hoàng Văn K', stationName: 'ĐH Bách Khoa', tripName: 'Tuyến 05', requestTime: '10:32 AM 25/10/2025', status: 'Đang chờ' },
-  { id: 'pr3', userName: 'Đỗ Thị N', stationName: 'Chợ Lớn', tripName: 'Tuyến 01', requestTime: '10:35 AM 25/10/2025', status: 'Đã duyệt' },
-  { id: 'pr4', userName: 'Lý Thị M', stationName: 'Bến xe Q.8', tripName: 'Tuyến 08', requestTime: '10:40 AM 25/10/2025', status: 'Đã hủy' },
+  { 
+    id: 'pr1', 
+    userName: 'Lý Thị M', 
+    stationName: 'Trạm Cầu Rồng', 
+    tripName: 'Tuyến 01', 
+    requestTime: '10:30 AM 18/11/2025', 
+    status: 'Đang chờ' 
+  },
+  { 
+    id: 'pr2', 
+    userName: 'Hoàng Văn K', 
+    stationName: 'ĐH Bách Khoa - ĐHĐN', 
+    tripName: 'Tuyến 05', 
+    requestTime: '10:32 AM 18/11/2025', 
+    status: 'Đang chờ' 
+  },
+  { 
+    id: 'pr3', 
+    userName: 'Đỗ Thị N', 
+    stationName: 'Trạm Chợ Hàn', 
+    tripName: 'Tuyến 05', 
+    requestTime: '10:35 AM 18/11/2025', 
+    status: 'Đã duyệt' 
+  },
+  { 
+    id: 'pr4', 
+    userName: 'Phạm Văn H', 
+    stationName: 'Trạm Ngũ Hành Sơn', 
+    tripName: 'Tuyến 01', 
+    requestTime: '10:40 AM 18/11/2025', 
+    status: 'Đã hủy' 
+  },
 ];
 
 // Định nghĩa màu cho các Tag Trạng thái

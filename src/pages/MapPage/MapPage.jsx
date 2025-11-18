@@ -1,25 +1,22 @@
 // src/pages/MapPage/MapPage.jsx
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Flex, Select, Input, message } from 'antd';
-// Import thêm: Source, Layer
 import Map, { Marker, Popup, NavigationControl, FullscreenControl, Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css'; 
 
-// Import Services
+// Import Services (Đã nâng cấp)
 import { stationService } from '~/services/stationService';
 import { routeService } from '~/services/routeService';
 import { vehicleService } from '~/services/vehicleService'; 
 import styles from './MapPage.module.css';
 
-// Import icons
+// Import icons (Đảm bảo bạn có file ảnh trong assets)
 import stationIcon from '~/assets/station-pin-blue.png';
 import busIcon from '~/assets/bus-marker.png';
 
-// Lấy Token
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
 // --- MARKER COMPONENTS ---
-
 const StationMarker = ({ station, onMarkerClick }) => (
   <Marker
     longitude={station.lon} 
@@ -34,14 +31,7 @@ const StationMarker = ({ station, onMarkerClick }) => (
       <img 
         src={stationIcon} 
         alt="Trạm" 
-        style={{ 
-          width: '30px', 
-          height: '50px',
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-          userSelect: 'none',
-          WebkitUserDrag: 'none',
-        }} 
-        draggable={false} 
+        style={{ width: '30px', height: '50px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} 
       />
     </div>
   </Marker>
@@ -61,29 +51,21 @@ const BusMarker = ({ bus, onMarkerClick }) => (
       <img 
         src={busIcon} 
         alt="Xe buýt" 
-        style={{ 
-          width: '50px', 
-          height: '50px',
-          filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-          userSelect: 'none',
-          WebkitUserDrag: 'none',
-        }} 
-        draggable={false} 
+        style={{ width: '40px', height: '40px', objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))' }} 
       />
     </div>
   </Marker>
 );
 
 // --- POPUP RENDER ---
-
 const renderPopupInfo = (item, type) => {
   if (type === 'station') {
     return (
       <div style={{ minWidth: 200, padding: '5px' }}>
         <h4 style={{ margin: '0 0 8px', color: '#1890ff', fontWeight: 600 }}>{item.name}</h4>
-        <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: '#333' }}>
+          <div><strong>Đia chỉ:</strong> {item.address}</div>
           <div><strong>Trạng thái:</strong> {item.status}</div>
-          <div><strong>Tọa độ:</strong> {item.lat.toFixed(4)}, {item.lon.toFixed(4)}</div>
         </div>
       </div>
     );
@@ -92,84 +74,79 @@ const renderPopupInfo = (item, type) => {
     return (
       <div style={{ minWidth: 200, padding: '5px' }}>
         <h4 style={{ margin: '0 0 8px', color: '#D32F2F', fontWeight: 600 }}>{item.plate}</h4>
-        <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 13, color: '#333' }}>
+          <div><strong>Tuyến:</strong> {item.routeName || 'N/A'}</div>
           <div><strong>Tài xế:</strong> {item.driverName || 'Chưa cập nhật'}</div>
+          <div><strong>Tốc độ:</strong> {item.speed ? `${item.speed} km/h` : '0 km/h'}</div>
           <div><strong>Trạng thái:</strong> {item.status}</div>
-          <div><strong>Tọa độ:</strong> {item.lat.toFixed(4)}, {item.lon.toFixed(4)}</div>
         </div>
       </div>
     );
   }
 };
 
-// --- LAYER STYLE CHO ĐƯỜNG VẼ ---
+// --- LAYER STYLE ---
 const routeLayerStyle = {
   id: 'route-line',
   type: 'line',
-  layout: {
-    'line-join': 'round',
-    'line-cap': 'round'
-  },
-  paint: {
-    'line-color': '#1890ff', // Màu xanh
-    'line-width': 4,
-    'line-opacity': 0.8
-  }
+  layout: { 'line-join': 'round', 'line-cap': 'round' },
+  paint: { 'line-color': '#1890ff', 'line-width': 4, 'line-opacity': 0.8 }
 };
 
-
 // --- COMPONENT CHÍNH ---
-
 const MapPage = () => {
-  // State dữ liệu gốc
   const [allStations, setAllStations] = useState([]);
   const [allVehicles, setAllVehicles] = useState([]);
-  const [allRoutesData, setAllRoutesData] = useState([]); // State chứa data thô
-  const [allRouteOptions, setAllRouteOptions] = useState([]); // State cho Select
+  const [allRoutesData, setAllRoutesData] = useState([]); 
+  const [allRouteOptions, setAllRouteOptions] = useState([]); 
   const [loading, setLoading] = useState(false);
   
-  // State Popup, ViewState
   const [popupInfo, setPopupInfo] = useState(null);
   const [initialViewState, setInitialViewState] = useState({
-    longitude: 106.6980,
-    latitude: 10.7725,
-    zoom: 13,
+    longitude: 108.2208, // Kinh độ Đà Nẵng
+    latitude: 16.0471,   // Vĩ độ Đà Nẵng
+    zoom: 12,            // Mức zoom phù hợp để nhìn toàn thành phố
   });
 
-  // State cho Bộ lọc
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [searchPlate, setSearchPlate] = useState('');
-
-  // State cho đường vẽ
   const [routePolyline, setRoutePolyline] = useState(null);
 
-  // Fetch data
+  // --- 1. SỬA FETCH DATA (QUAN TRỌNG NHẤT) ---
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       try {
+        // Gọi 3 service cùng lúc (Dùng hàm getAll mới)
         const [stationRes, routeRes, vehicleRes] = await Promise.all([
-          stationService.getStations(1, 1000),
-          routeService.getRoutes(1, 1000),
-          vehicleService.getVehicles(1, 1000) 
+          stationService.getAll(1, 2000), // Lấy số lượng lớn để hiện hết lên map
+          routeService.getAll(1, 2000),
+          vehicleService.getAll(1, 2000) 
         ]);
         
-        setAllStations(stationRes.data);
-        setAllVehicles(vehicleRes.data);
+        // Xử lý data an toàn (Mock trả về {data:[]}, API có thể trả về [])
+        const stations = stationRes.data || stationRes || [];
+        const routes = routeRes.data || routeRes || [];
+        const vehicles = vehicleRes.data || vehicleRes || [];
+
+        setAllStations(stations);
+        setAllRoutesData(routes);
+        setAllVehicles(vehicles);
         
-        // Lưu data thô của Tuyến (có coordinates)
-        setAllRoutesData(routeRes.data); 
-        
-        // Tạo options cho Select (thêm "Tất cả")
+        // Tạo options cho Select
         const routeOptions = [
           { value: null, label: 'Tất cả các tuyến' }, 
-          ...routeRes.data.map(route => ({ value: route.id, label: `${route.name}: ${route.startPoint} - ${route.endPoint}` }))
+          ...routes.map(route => ({ 
+            value: route.id, 
+            label: `${route.name}` // Hiển thị tên tuyến
+          }))
         ];
         setAllRouteOptions(routeOptions);
 
       } catch (error) {
-        message.error('Lỗi khi tải dữ liệu!');
+        console.error(error);
+        message.error('Lỗi khi tải dữ liệu bản đồ!');
       } finally {
         setLoading(false);
       }
@@ -177,7 +154,7 @@ const MapPage = () => {
     fetchData();
   }, []);
 
-  // Hàm xử lý click
+  // --- 2. LOGIC XỬ LÝ MARKER/POPUP (Giữ nguyên) ---
   const handleMarkerClick = useCallback((item, type) => {
     setPopupInfo({ item, type });
   }, []);
@@ -186,14 +163,14 @@ const MapPage = () => {
     setPopupInfo(null);
   }, []);
 
-  // Hàm xử lý cho Bộ lọc
+  // --- 3. LOGIC FILTER ---
   const handleRouteChange = (routeId) => {
     setSelectedRoute(routeId);
     
-    // Cập nhật đường vẽ
+    // Vẽ đường (Polyline)
     if (routeId) {
       const route = allRoutesData.find(r => r.id === routeId);
-      if (route && route.coordinates) {
+      if (route && route.coordinates) { // Đảm bảo mock data route có trường coordinates
         setRoutePolyline({
           type: 'Feature',
           geometry: {
@@ -201,9 +178,11 @@ const MapPage = () => {
             coordinates: route.coordinates
           }
         });
+      } else {
+          setRoutePolyline(null); // Nếu tuyến không có tọa độ vẽ
       }
     } else {
-      setRoutePolyline(null); // Xóa đường vẽ nếu chọn "Tất cả"
+      setRoutePolyline(null);
     }
   };
   
@@ -215,26 +194,29 @@ const MapPage = () => {
     setSearchPlate(e.target.value.toLowerCase());
   };
 
-  // Tối ưu hóa việc lọc bằng useMemo
+  // Filter Xe
   const filteredVehicles = useMemo(() => {
     return allVehicles
-      .filter(bus => bus.lat && bus.lon) // Chỉ hiển thị xe có tọa độ
-      .filter(bus => !selectedRoute || bus.routeId === selectedRoute) // Lọc theo Tuyến
-      .filter(bus => !selectedStatus || bus.status === selectedStatus) // Lọc theo Trạng thái
-      .filter(bus => bus.plate.toLowerCase().includes(searchPlate)); // Lọc theo Biển số
+      .filter(bus => bus.lat && bus.lon) // Chỉ lấy xe có GPS
+      .filter(bus => !selectedRoute || bus.routeId === selectedRoute) // Lọc theo RouteID
+      .filter(bus => !selectedStatus || bus.status === selectedStatus) 
+      .filter(bus => bus.plate.toLowerCase().includes(searchPlate)); 
   }, [allVehicles, selectedRoute, selectedStatus, searchPlate]);
 
+  // Filter Trạm
   const filteredStations = useMemo(() => {
     return allStations.filter(station => {
-      if (!selectedRoute) return true; // Lọc theo Tuyến
-      return station.routeIds.includes(selectedRoute);
+      if (!selectedRoute) return true;
+      // Kiểm tra xem trạm có thuộc tuyến đang chọn không
+      // (Giả sử station.routeIds là mảng chứa id các tuyến đi qua)
+      return station.routeIds && station.routeIds.includes(selectedRoute);
     });
   }, [allStations, selectedRoute]);
 
 
   return (
     <div className={styles.pageContainer}>
-      {/* Thanh Filters */}
+      {/* --- THANH CÔNG CỤ --- */}
       <Flex className={styles.filterBar} justify="space-between" gap="middle">
         <Select
           placeholder="Lọc theo tuyến"
@@ -243,40 +225,50 @@ const MapPage = () => {
           className={styles.filterSelect}
           onChange={handleRouteChange}
           allowClear
+          style={{ minWidth: 200 }}
         />
         <Select
-          placeholder="Lọc theo trạng thái xe"
+          placeholder="Trạng thái xe"
           options={[
-            { value: null, label: 'Tất cả trạng thái' },
+            { value: null, label: 'Tất cả' },
             { value: 'Đang chạy', label: 'Đang chạy' },
             { value: 'Bảo trì', label: 'Bảo trì' },
           ]}
           className={styles.filterSelect}
           onChange={handleStatusChange}
           allowClear
+          style={{ minWidth: 150 }}
         />
         <Input.Search
-          placeholder="Tìm theo biển số xe..."
+          placeholder="Tìm biển số xe..."
           className={styles.filterSearch}
           onChange={handleSearchChange}
           allowClear
+          style={{ maxWidth: 300 }}
         />
       </Flex>
 
-      {/* Bản đồ */}
+      {/* --- BẢN ĐỒ --- */}
       <div className={styles.mapContainer}>
         <Map
           mapboxAccessToken={MAPBOX_TOKEN}
           initialViewState={initialViewState}
           style={{ width: '100%', height: '100%' }} 
-          mapStyle="mapbox://styles/mapbox/streets-v11"
+          mapStyle="mapbox://styles/mapbox/streets-v12" // Update v12 mới nhất
           attributionControl={false}
-          onClick={handlePopupClose} // Đóng Popup khi click ra ngoài
+          onClick={handlePopupClose}
         >
           <NavigationControl position="bottom-right" />
           <FullscreenControl position="top-right" />
 
-          {/* Render Markers đã lọc */}
+          {/* Đường vẽ lộ trình */}
+          {routePolyline && (
+            <Source type="geojson" data={routePolyline}>
+              <Layer {...routeLayerStyle} />
+            </Source>
+          )}
+
+          {/* Marker Trạm */}
           {filteredStations.map(station => (
             <StationMarker 
               key={`station-${station.id}`}
@@ -285,6 +277,7 @@ const MapPage = () => {
             />
           ))}
 
+          {/* Marker Xe */}
           {filteredVehicles.map(bus => (
             <BusMarker 
               key={`bus-${bus.id}`}
@@ -293,23 +286,17 @@ const MapPage = () => {
             />
           ))}
           
-          {/* Render Đường vẽ Lộ trình */}
-          {routePolyline && (
-            <Source type="geojson" data={routePolyline}>
-              <Layer {...routeLayerStyle} />
-            </Source>
-          )}
-          
-          {/* Render Popup */}
+          {/* Popup Thông tin */}
           {popupInfo && (
             <Popup
               latitude={popupInfo.item.lat}
               longitude={popupInfo.item.lon}
-              anchor="bottom-left"
-              offset={popupInfo.type === 'bus' ? [25, -50] : [10, -30]}
+              anchor="bottom"
+              offset={popupInfo.type === 'bus' ? [0, -40] : [0, -40]}
               onClose={handlePopupClose}
               closeOnClick={false}
               closeButton={true}
+              maxWidth="300px"
             >
               {renderPopupInfo(popupInfo.item, popupInfo.type)}
             </Popup>

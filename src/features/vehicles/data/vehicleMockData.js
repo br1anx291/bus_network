@@ -1,76 +1,83 @@
 // src/features/vehicles/data/vehicleMockData.js
 
-// Dữ liệu thô - Giả lập database (MASTER VERSION)
+// Dữ liệu thô - Giả lập database (MASTER VERSION - DA NANG)
 export const rawVehicleData = [
   { 
     id: 'v1', 
-    plate: '50H-12345', 
-    model: 'Mercedes-Benz Sprinter', 
-    type: 'Xe 29 chỗ', 
-    capacity: 29, // <-- Thêm cho CRUD
+    plate: '43B-012.34', 
+    model: 'Thaco Bus', 
+    type: 'Xe 45 chỗ', 
+    capacity: 45, 
     status: 'Đang chạy',
-    routeId: 'r1', // <-- Thêm cho CRUD
+    routeId: 'r1', // Tuyến 01
     // Dữ liệu cho Bản đồ
     routeName: 'Tuyến 01',
-    lat: 10.7769, 
-    lon: 106.7009, 
     driverName: 'Nguyễn Văn A',
+    speed: 45,
+    // Tọa độ: Đang chạy gần Cầu Rồng
+    lat: 16.0612, 
+    lon: 108.2205, 
   },
   { 
     id: 'v2', 
-    plate: '29A-98765', 
+    plate: '43B-056.78', 
     model: 'Ford Transit', 
     type: 'Xe 16 chỗ', 
-    capacity: 16, // <-- Thêm cho CRUD
+    capacity: 16, 
     status: 'Đang chạy',
-    routeId: 'r2', // <-- Thêm cho CRUD
+    routeId: 'r2', // Tuyến 05
     routeName: 'Tuyến 05',
-    // Dữ liệu cho Bản đồ
-    lat: 10.7796, 
-    lon: 106.6990, 
     driverName: 'Trần Thị B',
+    speed: 35,
+    // Tọa độ: Đang chạy gần Chợ Hàn (Đường Trần Phú)
+    lat: 16.0688, 
+    lon: 108.2242, 
   },
   { 
     id: 'v3', 
-    plate: '51B-45678', 
+    plate: '43B-099.99', 
     model: 'Hyundai County', 
     type: 'Xe 29 chỗ', 
-    capacity: 29, // <-- Thêm cho CRUD
+    capacity: 29, 
     status: 'Bảo trì',
-    routeId: null, // <-- Thêm cho CRUD
+    routeId: 'r3', // Tuyến R16
     // Dữ liệu cho Bản đồ
-    routeName: 'N/A',
-    lat: null, 
-    lon: null, 
+    routeName: 'Tuyến R16',
     driverName: 'Lê Văn C',
+    speed: 0,
+    // Tọa độ: Đang nằm tại Bến xe Trung tâm
+    lat: 16.0540, 
+    lon: 108.1716, 
   },
   { 
     id: 'v4', 
-    plate: '92K-00123', 
-    model: 'Ford Transit', 
-    type: 'Xe 16 chỗ', 
-    capacity: 16, // <-- Thêm cho CRUD
+    plate: '92K-001.23', 
+    model: 'Thaco Garden', 
+    type: 'Xe 45 chỗ', 
+    capacity: 45, 
     status: 'Đang chạy',
-    routeId: 'r1', // <-- Thêm cho CRUD
-    // Dữ liệu cho Bản đồ
-    routeName: 'Tuyến 03',
-    lat: 10.7725, 
-    lon: 106.6980, 
+    routeId: 'r1', // Tuyến 01
+    routeName: 'Tuyến 01',
     driverName: 'Phạm Hữu D',
+    speed: 50,
+    // Tọa độ: Đang chạy gần Ngũ Hành Sơn (Đường Lê Văn Hiến)
+    lat: 16.0065, 
+    lon: 108.2635, 
   },
   { 
     id: 'v5', 
-    plate: '30N-55555', 
-    model: 'Thaco Town', 
-    type: 'Xe 45 chỗ', 
-    capacity: 45, // <-- Thêm cho CRUD
+    plate: '43B-555.55', 
+    model: 'VinBus', 
+    type: 'Xe điện', 
+    capacity: 60, 
     status: 'Không hoạt động',
-    routeId: null, // <-- Thêm cho CRUD
-    routeName: 'Tuyến 04',
-    // Dữ liệu cho Bản đồ (không có)
-    lat: null, 
-    lon: null, 
+    routeId: null, 
+    routeName: 'N/A',
+    // Dữ liệu cho Bản đồ (Vẫn có tọa độ để biết xe đang đậu ở đâu)
+    lat: 16.0439, // Đậu tại Sân bay
+    lon: 108.1994, 
     driverName: 'Chưa gán',
+    speed: 0,
   },
 ];
 
