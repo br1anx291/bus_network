@@ -6,9 +6,9 @@ import { Modal, Form, Input, Select, message, InputNumber, Row, Col } from 'antd
 import { stationService } from '~/services/stationService'; 
 
 const statusOptions = [
-  { value: 'Hoạt động', label: 'Hoạt động' },
-  { value: 'Bảo trì', label: 'Bảo trì' },
-  { value: 'Không hoạt động', label: 'Không hoạt động' },
+  { value: 'active', label: 'Hoạt động' },
+  { value: 'maintenance', label: 'Bảo trì' },
+  { value: 'stopped', label: 'Ngừng hoạt động' },
 ];
 
 const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => { 
@@ -24,7 +24,7 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           name: editingStation.name,
           address: editingStation.address, // Thêm address
           lat: editingStation.lat,
-          lon: editingStation.lon,
+          lng: editingStation.lng,
           status: editingStation.status,
         });
       } else {
@@ -36,6 +36,7 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
+      console.log("🚀 Dữ liệu Trạm gửi đi:", values); // Log để debug nếu cần
       setIsLoading(true);
 
       if (isEditing) {
@@ -51,10 +52,19 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
       onSuccess(); // Tải lại bảng
       onClose();   // Đóng modal
 
-    } catch (error) {
-      console.error('Lỗi khi lưu thông tin trạm:', error);
-      if (error.message) {
-         message.error(error.message || 'Đã có lỗi xảy ra');
+} catch (error) {
+      if (error.errorFields) {
+        console.log("Validate failed:", error);
+      } else {
+        console.error('Lỗi API:', error);
+        // Hiển thị chi tiết lỗi từ PocketBase
+        const errorData = error.response?.data || {};
+        const firstKey = Object.keys(errorData)[0];
+        const msg = firstKey 
+          ? `${firstKey}: ${errorData[firstKey].message}` 
+          : (error.message || 'Lỗi không xác định');
+          
+        message.error(`Lỗi: ${msg}`);
       }
     } finally {
       setIsLoading(false);
@@ -77,7 +87,7 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
         layout="vertical"
         name="station_form"
         style={{ marginTop: '24px' }}
-        initialValues={{ status: 'Hoạt động' }}
+        initialValues={{ status: 'active' }}
       >
         {/* 1. TÊN TRẠM */}
         <Form.Item
@@ -114,8 +124,8 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="lon"
-              label="Kinh độ (Lon)"
+              name="lng"
+              label="Kinh độ (Lng)"
               rules={[{ required: true, message: 'Vui lòng nhập kinh độ!' }]}
             >
               <InputNumber 

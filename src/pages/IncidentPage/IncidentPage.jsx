@@ -1,9 +1,13 @@
 // src/pages/IncidentPage/IncidentPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Flex, Typography, message } from 'antd';
-import IncidentTable from '~/features/incidents/components/IncidentTable';
-// --- 1. IMPORT MODAL VIEW ---
-import IncidentViewModal from '~/features/incidents/components/IncidentViewModal'; 
+import { Flex, Typography, message, Button } from 'antd';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+
+// 1. IMPORT COMPONENT
+import IncidentTable from '~/features/incidents/components/IncidentTable/IncidentTable';
+// [THAY ĐỔI] Dùng FormModal thay vì ViewModal để có thể Thêm/Sửa
+import IncidentFormModal from '~/features/incidents/components/IncidentFormModal/IncidentFormModal'; 
+
 import { incidentService } from '~/services/incidentService';
 import styles from './IncidentPage.module.css';
 
@@ -15,24 +19,18 @@ const IncidentPage = () => {
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 7,
+    pageSize: 10, // Tăng lên 10 cho chuẩn
     total: 0,
   });
 
-  // --- 2. STATE CHO MODAL ---
-  const [isViewModalOpen, setIsViewModalOpen] = useState(false);
-  const [viewingIncident, setViewingIncident] = useState(null);
-
-  // --- 3. FETCH DATA (Đã nâng cấp) ---
+  // --- 1. FETCH DATA ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // [NÂNG CẤP] getIncidents -> getAll
       const result = await incidentService.getAll(page, pageSize);
       
-      // Xử lý an toàn cho data (Mock vs API)
-      const list = result.data || result || [];
-      const totalCount = result.total || list.length || 0;
+      const list = result.data || [];
+      const totalCount = result.total || 0;
 
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
       
@@ -43,6 +41,7 @@ const IncidentPage = () => {
         total: totalCount,
       });
     } catch (error) {
+      console.error(error);
       message.error('Lỗi khi tải danh sách sự cố!');
     } finally {
       setLoading(false);
@@ -55,55 +54,87 @@ const IncidentPage = () => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
 
-  // --- 4. CẬP NHẬT TRẠNG THÁI (Đã nâng cấp) ---
-  const handleMarkComplete = async (id, isCompleted) => {
+  // --- 2. XÓA SỰ CỐ ---
+  const handleDelete = async (id) => {
     try {
-      // [NÂNG CẤP] updateIncidentCompletion -> updateCompletion
-      await incidentService.updateCompletion(id, isCompleted);
-      
-      message.success(isCompleted ? 'Đánh dấu đã hoàn thành!' : 'Bỏ đánh dấu hoàn thành!');
-      
-      // Tải lại dữ liệu để cập nhật bảng
+      await incidentService.delete(id);
+      message.success('Xóa sự cố thành công!');
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi cập nhật trạng thái!');
+      message.error('Lỗi khi xóa sự cố!');
     }
   };
 
-  // --- 5. XỬ LÝ MODAL VIEW ---
-  const handleView = (incidentRecord) => {
-    setViewingIncident(incidentRecord); 
-    setIsViewModalOpen(true);          
+  // --- 3. MODAL STATE (THÊM / SỬA) ---
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingIncident, setEditingIncident] = useState(null);
+
+  const handleOpenAddModal = () => {
+    setEditingIncident(null);
+    setIsModalOpen(true);
   };
 
-  const handleCloseViewModal = () => {
-    setIsViewModalOpen(false);
-    setViewingIncident(null); 
+  // Hàm này sẽ được gọi khi bấm nút Sửa ở bảng
+  const handleOpenEditModal = (record) => {
+    setEditingIncident(record);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleModalSuccess = () => {
+    handleCloseModal();
+    fetchData(); // Tải lại dữ liệu mới nhất
   };
 
   return (
     <div className={styles.pageContainer}>
+      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
           Quản lý Sự cố
         </Title>
+        
+        <Flex gap="small">
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
+          >
+            Báo cáo sự cố
+          </Button>
+        </Flex>
       </Flex>
 
-      {/* BẢNG SỰ CỐ */}
+      {/* --- BẢNG SỰ CỐ --- */}
       <IncidentTable 
         data={data}
         loading={loading}
         pagination={pagination}
         onTableChange={handleTableChange}
-        onMarkComplete={handleMarkComplete}
-        onView={handleView} 
+        
+        // Truyền các hành động xuống Table
+        onEdit={handleOpenEditModal}
+        onDelete={handleDelete}
       />
 
-      {/* MODAL XEM CHI TIẾT */}
-      <IncidentViewModal
-        open={isViewModalOpen}
-        onClose={handleCloseViewModal}
-        incident={viewingIncident}
+      {/* --- MODAL FORM --- */}
+      <IncidentFormModal
+        open={isModalOpen}
+        onClose={handleCloseModal}
+        onSuccess={handleModalSuccess}
+        editingIncident={editingIncident}
       />
     </div>
   );

@@ -1,33 +1,66 @@
 // src/pages/PickupRequestPage/PickupRequestPage.jsx
 import React, { useState, useEffect } from 'react';
-import { Flex, Typography, message } from 'antd';
-import PickupRequestTable from '~/features/pickupRequests/components/PickupRequestTable';
+import { Flex, Typography, message, Button, Tabs } from 'antd'; // <--- 1. Import Tabs
+import { ReloadOutlined } from '@ant-design/icons';
+
+import PickupRequestTable from '~/features/pickupRequests/components/PickupRequestTable/PickupRequestTable';
 import { pickupRequestService } from '~/services/pickupRequestService';
 import styles from './PickupRequestPage.module.css';
 
 const { Title } = Typography;
 
+// --- ĐỊNH NGHĨA CÁC TAB ---
+const TAB_ITEMS = [
+  {
+    key: 'pending',
+    label: 'Cần xử lý (Pending)',
+  },
+  {
+    key: 'accepted',
+    label: 'Đang đợi xe (Accepted)',
+  },
+  {
+    key: 'history', // Tab này sẽ lấy tất cả (All)
+    label: 'Lịch sử (All/Others)',
+  },
+];
+
 const PickupRequestPage = () => {
   // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // State quản lý Tab hiện tại, mặc định là 'pending'
+  const [activeTab, setActiveTab] = useState('pending'); 
+
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 7,
+    pageSize: 10,
     total: 0,
   });
 
-  // --- 1. FETCH DATA (Đã nâng cấp) ---
-  const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
+  // --- 1. FETCH DATA (Đã nâng cấp để nhận status) ---
+  const fetchData = async (
+    page = pagination.current, 
+    pageSize = pagination.pageSize, 
+    currentTab = activeTab // Nhận thêm tham số tab
+  ) => {
     setLoading(true);
     try {
-      // [ĐỔI TÊN] getPickupRequests -> getAll
-      const result = await pickupRequestService.getAll(page, pageSize);
+      // LOGIC MAPPING TỪ TAB -> STATUS API
+      // Backend service đã được sửa để nhận status string
+      let statusParam = '';
       
-      // [NÂNG CẤP] Xử lý data an toàn cho cả Mock và API
-      const list = result.data || result || [];
-      const totalCount = result.total || list.length || 0;
+      if (currentTab === 'pending') statusParam = 'pending';
+      else if (currentTab === 'accepted') statusParam = 'accepted';
+      else if (currentTab === 'history') statusParam = ''; // Rỗng = Lấy tất cả
+      
+      const result = await pickupRequestService.getAll(page, pageSize, statusParam);
+      
+      const list = result.data || [];
+      const totalCount = result.total || 0;
 
+      // Map thêm key
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
       
       setData(mappedData);
@@ -37,56 +70,109 @@ const PickupRequestPage = () => {
         total: totalCount,
       });
     } catch (error) {
+      console.error(error);
       message.error('Lỗi khi tải danh sách yêu cầu đón!');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { fetchData(); }, []);
+  // --- 2. USE EFFECT CHO TAB ---
+  // Mỗi khi đổi Tab -> Reset về trang 1 và gọi lại API
+  useEffect(() => {
+    const newPagination = { ...pagination, current: 1 };
+    setPagination(newPagination);
+    fetchData(1, newPagination.pageSize, activeTab);
+  }, [activeTab]);
 
   const handleTableChange = (newPagination) => {
-    fetchData(newPagination.current, newPagination.pageSize);
+    // Khi bấm chuyển trang, nhớ truyền activeTab hiện tại vào
+    fetchData(newPagination.current, newPagination.pageSize, activeTab);
   };
 
-  // --- 2. CẬP NHẬT TRẠNG THÁI (Đã nâng cấp) ---
+  const handleTabChange = (key) => {
+    setActiveTab(key);
+    // useEffect sẽ tự động lo việc fetch data
+  };
+
+  // --- 3. HÀM XỬ LÝ CHUNG (CORE LOGIC) ---
   const handleUpdateStatus = async (id, newStatus) => {
     try {
-      // [ĐỔI TÊN] updatePickupRequestStatus -> updateStatus
+      setLoading(true);
+      
+      // BƯỚC 1: Gọi API cập nhật xuống DB
       await pickupRequestService.updateStatus(id, newStatus);
       
-      message.success(`Đã ${newStatus === 'Đã duyệt' ? 'duyệt' : 'hủy'} yêu cầu!`);
-      fetchData(pagination.current, pagination.pageSize); 
+      // BƯỚC 2: CẬP NHẬT GIAO DIỆN NGAY LẬP TỨC (Optimistic UI Update)
+      setData(prevData => 
+        prevData.map(item => 
+          item.id === id ? { ...item, status: newStatus } : item
+        )
+      );
+
+      // Feedback
+      const actionMap = {
+        'accepted': 'Duyệt',
+        'rejected': 'Từ chối'
+      };
+      message.success(`Đã ${actionMap[newStatus] || 'cập nhật'} yêu cầu thành công!`);
+
+      // [TÙY CHỌN] Nếu muốn dòng đó biến mất ngay khỏi tab hiện tại sau khi xử lý
+      // thì có thể bỏ comment dòng dưới đây để load lại dữ liệu từ server:
+      // fetchData(pagination.current, pagination.pageSize, activeTab);
+
     } catch (error) {
+      console.error(error);
       message.error('Lỗi khi cập nhật trạng thái!');
+      // Nếu lỗi thì tải lại data cũ
+      fetchData(pagination.current, pagination.pageSize, activeTab);
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Cụ thể cho nút "Duyệt"
-  const handleApprove = (id) => {
-    handleUpdateStatus(id, 'Đã duyệt');
-  };
-
-  // Cụ thể cho nút "Hủy"
-  const handleDeny = (id) => {
-    handleUpdateStatus(id, 'Đã hủy');
-  };
+  // --- 4. CÁC HÀM SỰ KIỆN CỤ THỂ ---
+  const handleApprove = (id) => handleUpdateStatus(id, 'accepted'); 
+  const handleDeny = (id) => handleUpdateStatus(id, 'rejected');
+  const handleCancelTrip = (id) => handleUpdateStatus(id, 'rejected');
 
   return (
     <div className={styles.pageContainer}>
+      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
           Quản lý Yêu cầu đón
         </Title>
+        
+        <Button 
+          icon={<ReloadOutlined />} 
+          onClick={() => fetchData(pagination.current, pagination.pageSize, activeTab)}
+          loading={loading}
+        >
+          Làm mới
+        </Button>
       </Flex>
 
+      {/* --- TABS BỘ LỌC (MỚI THÊM) --- */}
+      <Tabs 
+        activeKey={activeTab} 
+        items={TAB_ITEMS} 
+        onChange={handleTabChange}
+        style={{ marginBottom: 16 }} 
+        type="card" // Giao diện dạng thẻ nhìn chuyên nghiệp hơn
+      />
+
+      {/* --- TABLE --- */}
       <PickupRequestTable 
         data={data}
         loading={loading}
         pagination={pagination}
         onTableChange={handleTableChange}
+        
+        // Truyền 3 hàm xử lý xuống Table
         onApprove={handleApprove} 
-        onDeny={handleDeny}     
+        onDeny={handleDeny}
+        onCancel={handleCancelTrip}     
       />
     </div>
   );

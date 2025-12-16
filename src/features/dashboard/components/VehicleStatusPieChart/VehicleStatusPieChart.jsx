@@ -1,8 +1,7 @@
 // src/features/dashboard/components/VehicleStatusPieChart/VehicleStatusPieChart.jsx
-import React, { useMemo } from 'react';
-import { Card, Flex, Typography, Button } from 'antd';
-
-// 1. IMPORT TỪ THƯ VIỆN 'recharts' MỚI
+import React, { useEffect, useState, useMemo } from 'react';
+import { Card, Flex, Typography, Button, Spin, Empty } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { 
   PieChart, 
   Pie, 
@@ -11,31 +10,37 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 
-// (Import data và styles vẫn giữ nguyên)
-import {
-  donutData,
-  STATUS_COLOR_MAP,
-} from '../../data/dashboardMockData';
+import { dashboardService } from '~/services/dashboardService';
 import styles from './VehicleStatusPieChart.module.css';
 
 const { Text, Title } = Typography;
 
-const dateRange = "Hôm nay, 12/10/2025"; 
+// --- ĐỊNH NGHĨA MÀU SẮC (Hardcode để giữ đúng màu bạn thích) ---
+const STATUS_COLORS = {
+  'Đang chạy':   '#52c41a', // Xanh lá
+  'Bảo trì':     '#faad14', // Vàng cam
+  'Ngoại tuyến': '#bfbfbf', // Xám
+};
 
-const VehicleStatusPieChart = () => {
+const VehicleStatusPieChart = ({ refreshKey }) => {
+  const navigate = useNavigate(); // Hook điều hướng
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // 2. CHUẨN BỊ DATA VÀ MÀU SẮC CHO RECHARTS
-  // (Recharts dùng 'name' thay vì 'type', và 'fill' thay vì 'color')
-  const chartData = useMemo(
-    () => donutData.map(item => ({
-      name: item.type,
-      value: item.value,
-      fill: STATUS_COLOR_MAP[item.type] || '#8884d8' // Gán màu
-    })),
-    [donutData, STATUS_COLOR_MAP]
-  );
-  
-  // (Chúng ta không cần donutConfig của thư viện cũ nữa)
+  // 1. Fetch dữ liệu từ API
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      const result = await dashboardService.getVehicleStatusStats();
+      setData(result);
+      setLoading(false);
+    };
+
+    fetchData();
+  }, [refreshKey]);
+
+  // 2. Tính tổng (để tính %)
+  const total = useMemo(() => data.reduce((acc, item) => acc + item.value, 0), [data]);
 
   return (
     <Card
@@ -46,69 +51,79 @@ const VehicleStatusPieChart = () => {
       }
       className={styles.card}
       bordered={false}
+      style={{ height: '100%' }} // Đảm bảo chiều cao đầy đủ
     >
-      <Flex vertical align="center" justify="center">
-        {/* --- THANH HEADER PHỤ (Giữ nguyên) --- */}
-        <Flex justify="space-between" align="center" className={styles.subHeader}>
-          <Text type="secondary">{dateRange}</Text>
-          <Button size="small" className={styles.reportButton}>
-            Xem Report
-          </Button>
-        </Flex>
+      <Spin spinning={loading}>
+        <Flex vertical align="center" justify="center" style={{ minHeight: '300px' }}>
+          
+          {/* Header phụ */}
+          <Flex justify="space-between" align="center" className={styles.subHeader} style={{ width: '100%', marginBottom: 20 }}>
+            <Text type="secondary">Cập nhật lúc: {new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</Text>
+            {/* SỬA NÚT REPORT TẠI ĐÂY */}
+            <Button 
+              size="small" 
+              className={styles.reportButton}
+              onClick={() => navigate('/van-hanh/quan-ly-xe')} // Chuyển hướng sang trang Quản lý xe
+            >
+              Chi tiết
+            </Button>
+          </Flex>
 
-        {/* --- 3. THAY THẾ BIỂU ĐỒ BẰNG RECHARTS --- */}
-        <div className={styles.chartWrapper}>
-          {/* Recharts cần set chiều cao cho ResponsiveContainer */}
-          <ResponsiveContainer width="100%" height={200}>
-            <PieChart>
-              <Tooltip />
-              <Pie
-                data={chartData}
-                dataKey="value"
-                nameKey="name"
-                cx="50%" // Căn giữa
-                cy="50%" // Căn giữa
-                innerRadius="60%" // <-- Tạo hiệu ứng Donut
-                outerRadius="100%" // <-- Giảm nếu muốn nhỏ hơn
-                fill="#8884d8" // Màu mặc định (sẽ bị đè)
-                paddingAngle={0} // Không có khoảng cách
-                label={false} // Tắt nhãn
-                labelLine={false} // Tắt đường chỉ
-                startAngle={90}  // Bắt đầu từ 12 giờ
-                endAngle={-270} // Vẽ ngược chiều kim đồng hồ 360 độ
-              >
-                {/* Dùng <Cell> để gán màu cho từng miếng bánh */}
-                {chartData.map((entry) => (
-                  <Cell key={`cell-${entry.name}`} fill={entry.fill} />
+          {/* --- BIỂU ĐỒ --- */}
+          {total > 0 ? (
+            <>
+              <div className={styles.chartWrapper} style={{ width: '100%', height: 220 }}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Tooltip formatter={(value) => [`${value} xe`, 'Số lượng']} />
+                    <Pie
+                      data={data}
+                      dataKey="value"
+                      nameKey="type"
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={60} 
+                      outerRadius={80} 
+                      paddingAngle={2}
+                      startAngle={90}
+                      endAngle={-270}
+                    >
+                      {data.map((entry, index) => (
+                        <Cell 
+                          key={`cell-${index}`} 
+                          fill={STATUS_COLORS[entry.type] || '#8884d8'} 
+                        />
+                      ))}
+                    </Pie>
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              {/* --- CHÚ THÍCH (LEGEND) --- */}
+              <Flex justify="center" gap={20} wrap="wrap" style={{ marginTop: 20 }}>
+                {data.map((item) => (
+                  <Flex key={item.type} align="center" gap={8}>
+                    {/* Chấm màu */}
+                    <div
+                      style={{
+                        width: 10,
+                        height: 10,
+                        borderRadius: '50%',
+                        backgroundColor: STATUS_COLORS[item.type],
+                      }}
+                    />
+                    <Text type="secondary">{item.type}</Text>
+                    <Text strong>{item.value}</Text>
+                  </Flex>
                 ))}
-              </Pie>
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
-        {/* --- HẾT PHẦN THAY THẾ --- */}
-
-        {/* --- Legend (Giữ nguyên, nó đã hoàn hảo) --- */}
-        <Flex justify="space-around" align="start" className={styles.legendWrapper}>
-          {donutData.map((item) => (
-            <Flex key={item.type} vertical align="start" gap={4}>
-              <Flex align="center" gap={8}>
-                <div
-                  className={styles.legendDot}
-                  style={{
-                    backgroundColor: STATUS_COLOR_MAP[item.type],
-                  }}
-                />
-                <Text type="secondary" className={styles.legendType}>
-                  {item.type}
-                </Text>
               </Flex>
-              <Text strong className={styles.legendValue}>
-                {item.value}
-              </Text>
-            </Flex>
-          ))}
+            </>
+          ) : (
+            <Empty description="Chưa có dữ liệu xe" />
+          )}
+
         </Flex>
-      </Flex>
+      </Spin>
     </Card>
   );
 };

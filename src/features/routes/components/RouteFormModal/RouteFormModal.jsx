@@ -6,9 +6,9 @@ import { Modal, Form, Input, Select, message, InputNumber } from 'antd';
 import { routeService } from '~/services/routeService'; 
 
 const statusOptions = [
-  { value: 'Đang hoạt động', label: 'Đang hoạt động' },
-  { value: 'Tạm ngưng', label: 'Tạm ngưng' },
-  { value: 'Bảo trì', label: 'Bảo trì' },
+  { value: 'active', label: 'Đang hoạt động' },
+  { value: 'maintenance', label: 'Bảo trì' },
+  { value: 'stopped', label: 'Tạm ngưng' },
 ];
 
 const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
@@ -22,10 +22,10 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
     if (open) {
       if (isEditing) {
         form.setFieldsValue({
+          code: editingRoute.code,
           name: editingRoute.name,
           description: editingRoute.description, // Thêm trường này
-          numStops: editingRoute.numStops,       // Sửa stopsCount -> numStops
-          status: editingRoute.status,
+          status: editingRoute.status || '',
         });
       } else {
         form.resetFields();
@@ -52,9 +52,24 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
       onClose();   // Đóng modal
 
     } catch (error) {
-      console.error('Lỗi khi lưu thông tin tuyến:', error);
-      if (error.message) {
-         message.error(error.message || 'Đã có lỗi xảy ra');
+      // [FIX QUAN TRỌNG] Phân loại lỗi để hiển thị
+      if (error.errorFields) {
+        // Đây là lỗi chưa nhập đủ thông tin (Antd tự hiện chữ đỏ dưới ô input)
+        // Không cần alert message gây khó chịu
+        console.log("Validate failed:", error);
+      } else {
+// --- SỬA ĐOẠN NÀY ĐỂ SOI LỖI 400 ---
+        console.error('Chi tiết lỗi PocketBase:', error.response); 
+        // error.response.data sẽ cho biết chính xác cột nào sai
+        
+        // Hiển thị thông báo lỗi cụ thể
+        const errorData = error.response?.data || {};
+        const firstKey = Object.keys(errorData)[0];
+        const errorMessage = firstKey 
+          ? `${firstKey}: ${errorData[firstKey].message}` 
+          : (error.message || 'Lỗi không xác định');
+
+        message.error(`Lỗi tạo tuyến: ${errorMessage}`);
       }
     } finally {
       setIsLoading(false);
@@ -77,8 +92,15 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
         layout="vertical"
         name="route_form"
         style={{ marginTop: '24px' }}
-        initialValues={{ status: 'Đang hoạt động', numStops: 10 }}
+        initialValues={{ status: 'active', numStops: 10 }}
       >
+        <Form.Item
+          name="code"
+          label="Mã tuyến"
+          rules={[{ required: true, message: 'Vui lòng nhập mã tuyến!' }]}
+        >
+          <Input placeholder="Ví dụ: R1" />
+        </Form.Item>
         {/* FIELD 1: TÊN TUYẾN */}
         <Form.Item
           name="name"
@@ -95,15 +117,6 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
           rules={[{ required: true, message: 'Vui lòng nhập mô tả!' }]}
         >
           <Input placeholder="Ví dụ: Bến Thành - Bến xe Miền Tây" />
-        </Form.Item>
-
-        {/* FIELD 3: SỐ TRẠM (Đổi tên biến cho khớp Data) */}
-        <Form.Item
-          name="numStops" 
-          label="Số trạm dừng"
-          rules={[{ required: true, message: 'Vui lòng nhập số trạm!' }]}
-        >
-          <InputNumber min={1} style={{ width: '100%' }} placeholder="Ví dụ: 15" />
         </Form.Item>
 
         {/* FIELD 4: TRẠNG THÁI */}

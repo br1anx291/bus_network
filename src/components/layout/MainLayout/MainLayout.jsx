@@ -2,17 +2,22 @@
 import React, { useState, useMemo } from 'react';
 import {
   Layout, Menu, Input, Flex, Avatar, Dropdown, Badge, Popover, List, Typography, 
-  AutoComplete // 1. IMPORT AutoComplete
+  AutoComplete, Tooltip, Empty // [UPDATE] 1. Thêm Tooltip
 } from 'antd';
 import {
   WarningOutlined, BarChartOutlined, TeamOutlined, SettingOutlined, LogoutOutlined,
   SearchOutlined, BellOutlined, UserOutlined, LineChartOutlined, EnvironmentOutlined,
   ControlOutlined, InfoCircleOutlined,
-  CarOutlined, NodeIndexOutlined, HomeOutlined // 2. IMPORT ICON MỚI
+  CarOutlined, NodeIndexOutlined, HomeOutlined, CheckCircleOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
 import styles from './MainLayout.module.css';
 import { authService } from '~/services/authService'; 
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
+import relativeTime from 'dayjs/plugin/relativeTime';
+// [UPDATE] 2. Import Context
+import { useNotification } from '~/contexts/NotificationContext';
 
 import logoImg from '~/assets/bus-logo.png';
 
@@ -21,16 +26,13 @@ import { rawVehicleData } from '~/features/vehicles/data/vehicleMockData';
 import { rawRouteData } from '~/features/routes/data/routeMockData';
 import { rawStationData } from '~/features/stations/data/stationMockData';
 
+// Cấu hình dayjs
+dayjs.extend(relativeTime);
+dayjs.locale('vi');
+
 const { Header, Content, Sider } = Layout;
-// const { Search } = Input; // <-- KHÔNG DÙNG CÁI NÀY NỮA
 const { Text } = Typography;
 
-// --- DATA THÔNG BÁO (Giữ nguyên) ---
-const notificationsData = [
-  { title: 'Xe 50H-12345 rời khỏi lộ trình', time: '5 phút trước', type: 'danger' },
-  { title: 'Tài xế Nguyễn Văn A báo cáo sự cố', time: '10 phút trước', type: 'warning' },
-  { title: 'Hệ thống bảo trì định kỳ', time: '1 giờ trước', type: 'info' },
-];
 
 // --- MENU CHÍNH (Giữ nguyên) ---
 const mainMenuItems = [
@@ -67,25 +69,27 @@ const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation(); 
 
-  const [notifCount, setNotifCount] = useState(5);
+  // [UPDATE] 3. Sử dụng Context thay vì State cục bộ
+  const { settings, unreadCount, notifications, markAsRead } = useNotification();
+  
+  // State mở/đóng popover
   const [openNotif, setOpenNotif] = useState(false);
   
   // 4. STATE CHO TÌM KIẾM
   const [searchOptions, setSearchOptions] = useState([]);
 
   // --- 5. XỬ LÝ DỮ LIỆU TÌM KIẾM (GỘP 3 NGUỒN) ---
-  // Tạo danh sách tìm kiếm tổng hợp từ MockData
   const searchDataSource = useMemo(() => {
     const vehicles = rawVehicleData.map(v => ({
-      value: v.plate, // Cái hiển thị khi tìm
-      label: ( // Giao diện hiển thị trong dropdown
+      value: v.plate, 
+      label: ( 
         <Flex justify="space-between">
           <span><CarOutlined style={{ marginRight: 8, color: '#1890ff' }} /> {v.plate}</span>
           <Text type="secondary" style={{ fontSize: 12 }}>Xe {v.capacity} chỗ</Text>
         </Flex>
       ),
       type: 'vehicle',
-      link: '/van-hanh/quan-ly-xe', // Link đích
+      link: '/van-hanh/quan-ly-xe', 
     }));
 
     const routes = rawRouteData.map(r => ({
@@ -121,22 +125,16 @@ const MainLayout = () => {
       setSearchOptions([]);
       return;
     }
-    // Lọc dữ liệu (Case insensitive)
     const filtered = searchDataSource.filter(item => 
       item.value.toLowerCase().includes(searchText.toLowerCase())
     );
-    // Giới hạn hiển thị 5 kết quả đầu tiên cho gọn
     setSearchOptions(filtered.slice(0, 5));
   };
 
   const handleSelect = (value, option) => {
-    console.log('Đã chọn:', option);
-    // Điều hướng đến trang tương ứng
-    // (Có thể nâng cao: Truyền thêm state để trang đích tự filter)
     navigate(option.link);
   };
 
-  // (Các hàm xử lý cũ giữ nguyên)
   const selectedKeys = [location.pathname];
   const openKeys = [`/${location.pathname.split('/')[1]}`];
 
@@ -164,27 +162,66 @@ const MainLayout = () => {
       navigate('/cai-dat', { state: { activeTab: 'security' } });
     }
   };
+  const handleItemClick = (item) => {
+    if (!item.is_read) {
+      markAsRead(item.id); // Gọi API đánh dấu đã đọc
+    }
+    // Có thể navigate tới đâu đó tùy nội dung tin nhắn
+    // navigate('/su-co'); 
+  };
 
   const handleNotifOpenChange = (newOpen) => {
     setOpenNotif(newOpen);
-    if (newOpen) setNotifCount(0);
+    // Nếu muốn khi mở ra thì reset count, bạn có thể gọi hàm markAsRead từ Context ở đây
   };
 
-  const notificationContent = (
-    <div style={{ width: 300 }}>
-      <List
-        itemLayout="horizontal"
-        dataSource={notificationsData}
-        renderItem={(item) => (
-          <List.Item>
-            <List.Item.Meta
-              avatar={<InfoCircleOutlined style={{ color: item.type === 'danger' ? 'red' : '#1890ff' }} />}
-              title={<span style={{ fontSize: 13 }}>{item.title}</span>}
-              description={<span style={{ fontSize: 11 }}>{item.time}</span>}
-            />
-          </List.Item>
-        )}
-      />
+  // [UPDATE] Logic kiểm tra xem người dùng có bật thông báo không
+  // Mặc định là true nếu settings chưa tải xong
+  const isNotificationEnabled = settings?.app_notification ?? true;
+
+const notificationContent = (
+    <div style={{ width: 320, maxHeight: 400, overflowY: 'auto' }}>
+      {notifications && notifications.length > 0 ? (
+        <List
+          itemLayout="horizontal"
+          dataSource={notifications}
+          renderItem={(item) => (
+            <List.Item 
+                onClick={() => handleItemClick(item)}
+                style={{ 
+                    cursor: 'pointer', 
+                    padding: '10px',
+                    // Nếu chưa đọc thì nền hơi xanh nhạt, đã đọc thì trắng
+                    background: item.is_read ? 'transparent' : '#e6f7ff',
+                    transition: 'background 0.3s'
+                }}
+            >
+              <List.Item.Meta
+                avatar={
+                    // Nếu chưa đọc hiện icon ! xanh, đã đọc hiện icon check xám
+                    !item.is_read 
+                    ? <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
+                    : <CheckCircleOutlined style={{ color: '#ccc', fontSize: 20 }} />
+                }
+                title={
+                    <Text strong={!item.is_read} style={{ fontSize: 13 }}>
+                        {item.message}
+                    </Text>
+                }
+                description={
+                    <Text type="secondary" style={{ fontSize: 11 }}>
+                        {/* Dùng dayjs để hiện "5 phút trước" từ field 'time' hoặc 'created' */}
+                        {dayjs(item.time || item.created).fromNow()}
+                    </Text>
+                }
+              />
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Empty description="Không có thông báo mới" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+      )}
+      
       <div style={{ textAlign: 'center', marginTop: 8, borderTop: '1px solid #f0f0f0', paddingTop: 8 }}>
         <a style={{ fontSize: 12 }} onClick={() => setOpenNotif(false)}>Đóng</a>
       </div>
@@ -199,17 +236,11 @@ const MainLayout = () => {
             <div 
               className={styles.logo} 
               style={{ 
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '10px'
+                cursor: 'pointer', display: 'flex', alignItems: 'center',
+                justifyContent: 'center', gap: '10px'
               }}
             >
-              <img 
-                src={logoImg}
-                alt="BusNetwork Logo" 
-                style={{ height: '28px', width: 'auto' }} 
+              <img src={logoImg} alt="BusNetwork Logo" style={{ height: '28px', width: 'auto' }} 
               />
               <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#000000ff' }}>
                 BusNetwork
@@ -245,39 +276,52 @@ const MainLayout = () => {
         <Header className={styles.header}>
           <Flex justify="space-between" align="center" className={styles.headerFlex}>
             
-            {/* --- 7. THANH TÌM KIẾM THÔNG MINH (AUTOCOMPLETE) --- */}
+            {/* --- THANH TÌM KIẾM THÔNG MINH --- */}
             <AutoComplete
-              popupClassName="search-popup" // Class tùy chọn
-              style={{ width: 400 }}        // Tăng độ rộng cho đẹp
-              options={searchOptions}       // Danh sách kết quả
-              onSelect={handleSelect}       // Xử lý khi chọn
-              onSearch={handleSearch}       // Xử lý khi gõ
+              popupClassName="search-popup"
+              style={{ width: 400 }}
+              options={searchOptions}
+              onSelect={handleSelect}
+              onSearch={handleSearch}
             >
               <Input.Search 
                 placeholder="Tìm biển số xe, tuyến, trạm..." 
                 className={styles.headerSearch}
-                enterButton // Giữ nút kính lúp cho đẹp
+                enterButton
                 allowClear
               />
             </AutoComplete>
-            {/* --- HẾT PHẦN TÌM KIẾM --- */}
 
             <Flex align="center" gap="middle">
-              <Popover
-                content={notificationContent}
-                title="Thông báo mới"
-                trigger="click"
-                open={openNotif}
-                onOpenChange={handleNotifOpenChange}
-                placement="bottomRight"
-                overlayStyle={{ zIndex: 2000 }}
-              >
-                <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                  <Badge count={notifCount}>
-                    <BellOutlined className={styles.notificationIcon} />
-                  </Badge>
-                </div>
-              </Popover>
+              
+              {/* [UPDATE] 4. Khu vực Chuông Thông Báo */}
+              {isNotificationEnabled ? (
+                // TRƯỜNG HỢP BẬT THÔNG BÁO: Hiển thị Badge + Popover
+                <Popover
+                    content={notificationContent}
+                    title="Thông báo mới"
+                    trigger="click"
+                    open={openNotif}
+                    onOpenChange={handleNotifOpenChange}
+                    placement="bottomRight"
+                    overlayStyle={{ zIndex: 2000 }}
+                >
+                    <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                    <Badge count={unreadCount}> {/* Dùng số liệu từ Context */}
+                        <BellOutlined className={styles.notificationIcon} />
+                    </Badge>
+                    </div>
+                </Popover>
+              ) : (
+                // TRƯỜNG HỢP TẮT THÔNG BÁO: Hiển thị icon mờ + Tooltip
+                <Tooltip title="Bạn đã tắt thông báo trên Web trong phần Cài đặt">
+                    <div style={{ cursor: 'not-allowed', display: 'flex', alignItems: 'center', opacity: 0.4 }}>
+                    <Badge dot={false}> 
+                        <BellOutlined style={{ fontSize: '20px', color: '#999' }} />
+                    </Badge>
+                    </div>
+                </Tooltip>
+              )}
 
               <span className={styles.userName}>Chào, Tuyết My</span>
               

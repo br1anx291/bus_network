@@ -1,2 +1,2 @@
 // src/features/incidents/components/IncidentViewModal/index.js
-export { default } from './IncidentViewModal';
+export { default } from './IncidentFormModal';

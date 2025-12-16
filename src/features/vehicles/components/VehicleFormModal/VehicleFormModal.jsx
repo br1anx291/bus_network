@@ -1,72 +1,82 @@
 // src/features/vehicles/components/VehicleFormModal/VehicleFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, InputNumber, Select, message } from 'antd';
-// Import Service từ đường dẫn chính xác (nếu bạn dùng alias ~ thì sửa lại nhé)
 import { vehicleService } from '~/services/vehicleService'; 
 
-// Cập nhật option cho khớp với Mock Data và Logic màu sắc
+// --- 1. ĐỊNH NGHĨA OPTIONS ---
 const statusOptions = [
-  { value: 'Đang chạy', label: 'Đang chạy' },
-  { value: 'Bảo trì', label: 'Bảo trì' },
-  { value: 'Không hoạt động', label: 'Không hoạt động' },
+  { value: 'active', label: 'Đang chạy' },
+  { value: 'maintenance', label: 'Bảo trì' },
+  { value: 'stopped', label: 'Không hoạt động' },
 ];
 
-const typeOptions = [
-  { value: 'Xe 16 chỗ', label: 'Xe 16 chỗ' },
-  { value: 'Xe 29 chỗ', label: 'Xe 29 chỗ' },
-  { value: 'Xe 45 chỗ', label: 'Xe 45 chỗ' },
-  { value: 'Xe giường nằm', label: 'Xe giường nằm' },
-];
+// (Đã xóa typeOptions)
 
-const VehicleFormModal = ({ open, onClose, onSuccess, editingVehicle }) => {
+const VehicleFormModal = ({ 
+  open, 
+  onClose, 
+  onSuccess, 
+  editingVehicle,
+  routeOptions = [], 
+  driverOptions = [] 
+}) => {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
 
   const isEditing = !!editingVehicle;
 
+  // --- 2. LOGIC ĐIỀN DỮ LIỆU (PRE-FILL) ---
   useEffect(() => {
     if (open) {
       if (isEditing) {
-        // Điền dữ liệu khi sửa
         form.setFieldsValue({
-          plate: editingVehicle.plate,         // Khớp với key 'plate' trong data
-          model: editingVehicle.model,         // Thêm model
-          type: editingVehicle.type,           // Thêm type
+          plate: editingVehicle.plate,
+          model: editingVehicle.model,
+          // type: editingVehicle.type, // (Đã xóa)
           capacity: editingVehicle.capacity,
           status: editingVehicle.status,
-          routeName: editingVehicle.routeName  // Khớp với key 'routeName'
+          
+          routes: editingVehicle.routes || editingVehicle.routeId || null,
+          driver: editingVehicle.driver || editingVehicle.driverId || null,
         });
       } else {
-        // Reset form khi thêm mới
         form.resetFields();
+        form.setFieldsValue({ 
+          status: 'active', 
+          capacity: 16 
+        });
       }
     }
   }, [editingVehicle, form, isEditing, open]);
 
+  // --- 3. LOGIC XỬ LÝ SUBMIT ---
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
       setIsLoading(true);
 
+      const payload = {
+        ...values,
+        routes: values.routes || null,
+        driver: values.driver || null
+        // Không gửi type nữa
+      };
+
       if (isEditing) {
-        // Logic CẬP NHẬT: Truyền ID riêng và Data riêng
-        await vehicleService.update(editingVehicle.id, values);
+        await vehicleService.update(editingVehicle.id, payload);
         message.success('Cập nhật xe thành công!');
       } else {
-        // Logic THÊM MỚI
-        await vehicleService.create(values);
+        await vehicleService.create(payload);
         message.success('Thêm xe mới thành công!');
       }
 
-      onSuccess(); // Tải lại bảng
-      onClose();   // Đóng modal
+      onSuccess(); 
+      onClose();   
 
     } catch (error) {
-      console.error('Lỗi khi lưu thông tin xe:', error);
-      // Nếu lỗi không phải do validate (lỗi API/Service)
-      if (error.message) {
-         message.error(error.message || 'Đã có lỗi xảy ra');
-      }
+      console.error('Lỗi lưu xe:', error);
+      const msg = error.message || 'Đã có lỗi xảy ra';
+      message.error(msg);
     } finally {
       setIsLoading(false);
     }
@@ -82,67 +92,91 @@ const VehicleFormModal = ({ open, onClose, onSuccess, editingVehicle }) => {
       okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
       cancelText="Hủy bỏ"
       forceRender
+      width={700}
     >
       <Form
         form={form}
         layout="vertical"
         name="vehicle_form"
         style={{ marginTop: '24px' }}
-        // Giá trị mặc định cho form thêm mới
-        initialValues={{ status: 'Đang chạy', capacity: 16 }} 
       >
-        {/* 1. BIỂN SỐ XE */}
-        <Form.Item
-          name="plate" // Đã đổi từ licensePlate -> plate
-          label="Biển số xe"
-          rules={[{ required: true, message: 'Vui lòng nhập biển số!' }]}
-        >
-          <Input placeholder="Ví dụ: 50H-12345" />
-        </Form.Item>
+        {/* --- DÒNG 1: BIỂN SỐ & MẪU XE --- */}
+        <div style={{ display: 'flex', gap: '16px' }}>
+            <Form.Item
+              name="plate"
+              label="Biển số xe"
+              style={{ flex: 1 }}
+              rules={[{ required: true, message: 'Vui lòng nhập biển số!' }]}
+            >
+              <Input placeholder="Ví dụ: 50H-12345" />
+            </Form.Item>
 
-        {/* 2. MẪU XE (Thêm mới) */}
-        <Form.Item
-          name="model"
-          label="Mẫu xe"
-          rules={[{ required: true, message: 'Vui lòng nhập mẫu xe!' }]}
-        >
-          <Input placeholder="Ví dụ: Ford Transit" />
-        </Form.Item>
+            <Form.Item
+              name="model"
+              label="Mẫu xe (Hãng)"
+              style={{ flex: 1 }}
+              rules={[{ required: true, message: 'Vui lòng nhập mẫu xe!' }]}
+            >
+              <Input placeholder="Ví dụ: Ford Transit" />
+            </Form.Item>
+        </div>
 
-        {/* 3. LOẠI XE (Thêm mới) */}
-        <Form.Item
-          name="type"
-          label="Loại xe"
-          rules={[{ required: true, message: 'Vui lòng chọn loại xe!' }]}
-        >
-          <Select options={typeOptions} placeholder="Chọn loại xe" />
-        </Form.Item>
+        {/* --- DÒNG 2: SỨC CHỨA & TRẠNG THÁI (Đẩy trạng thái lên đây cho gọn) --- */}
+        <div style={{ display: 'flex', gap: '16px' }}>
+            <Form.Item
+              name="capacity"
+              label="Sức chứa"
+              style={{ flex: 1 }}
+              rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
+            >
+              <InputNumber min={4} max={100} style={{ width: '100%' }} />
+            </Form.Item>
 
-        {/* 4. SỨC CHỨA */}
-        <Form.Item
-          name="capacity"
-          label="Sức chứa (số ghế)"
-          rules={[{ required: true, message: 'Vui lòng nhập sức chứa!' }]}
-        >
-          <InputNumber min={4} max={60} style={{ width: '100%' }} />
-        </Form.Item>
+            <Form.Item
+              name="status"
+              label="Trạng thái"
+              style={{ flex: 1 }}
+              rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
+            >
+              <Select options={statusOptions} placeholder="Chọn trạng thái" />
+            </Form.Item>
+        </div>
 
-        {/* 5. TRẠNG THÁI */}
-        <Form.Item
-          name="status"
-          label="Trạng thái"
-          rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
-        >
-          <Select options={statusOptions} placeholder="Chọn trạng thái" />
-        </Form.Item>
+        {/* --- DÒNG 3: TÀI XẾ & TUYẾN --- */}
+        <div style={{ display: 'flex', gap: '16px' }}>
+            <Form.Item
+              name="driver"
+              label="Tài xế phụ trách"
+              style={{ flex: 1 }}
+            >
+              <Select 
+                options={driverOptions} 
+                placeholder="Chọn tài xế..."
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
 
-        {/* 6. TUYẾN (Optional) */}
-        <Form.Item
-          name="routeName" // Đã đổi từ currentRoute -> routeName
-          label="Đang ở tuyến"
-        >
-          <Input placeholder="Ví dụ: Tuyến 05" />
-        </Form.Item>
+            <Form.Item
+              name="routes"
+              label="Tuyến cố định (Nếu có)"
+              style={{ flex: 1 }}
+            >
+              <Select 
+                options={routeOptions}
+                placeholder="Tìm và chọn tuyến..."
+                allowClear
+                showSearch
+                filterOption={(input, option) =>
+                  (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+                }
+              />
+            </Form.Item>
+        </div>
+
       </Form>
     </Modal>
   );

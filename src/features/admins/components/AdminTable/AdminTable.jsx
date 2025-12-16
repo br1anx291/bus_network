@@ -1,11 +1,24 @@
 // src/features/admins/components/AdminTable/AdminTable.jsx
 import React, { useMemo } from 'react';
-import { Table, Tag, Space, Button, Popconfirm } from 'antd';
-import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
-
-// 1. Import cả 2 map màu
-import { STATUS_COLOR_MAP, ROLE_COLOR_MAP } from '../../data/adminMockData'; 
+import { Table, Tag, Space, Button, Popconfirm, Tooltip } from 'antd';
+import { EditOutlined, DeleteOutlined, PhoneOutlined } from '@ant-design/icons';
 import styles from './AdminTable.module.css';
+
+// --- ĐỊNH NGHĨA MAPPING HIỂN THỊ (CONSTANTS) ---
+const ROLE_CONFIG = {
+  'superadmin': { text: 'Quản trị viên', color: 'volcano' },
+  'manager':    { text: 'Quản lý',       color: 'geekblue' },
+  'staff':      { text: 'Nhân viên',     color: 'green' },
+  // Default
+  'default':    { text: 'Khác',          color: 'default' }
+};
+
+const STATUS_CONFIG = {
+  'active':  { text: 'Đã xác thực',   color: 'success' }, // Xanh lá
+  'pending': { text: 'Chưa xác thực', color: 'warning' }, // Vàng cam
+  // Default
+  'default': { text: 'Không rõ',      color: 'default' }
+};
 
 const AdminTable = ({ 
   data, 
@@ -18,52 +31,88 @@ const AdminTable = ({
 
   const columns = useMemo(
     () => [
-      { title: 'TÊN ADMIN', dataIndex: 'name', key: 'name' },
-      { title: 'EMAIL', dataIndex: 'email', key: 'email' },
+      // 1. Tên hiển thị
+      { 
+        title: 'TÊN ADMIN', 
+        dataIndex: 'username', 
+        key: 'username',
+        render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>
+      },
+      
+      // 2. Email
+      { 
+        title: 'EMAIL', 
+        dataIndex: 'email', 
+        key: 'email' 
+      },
+
+      // 3. [CỘT MỚI] Số điện thoại
       {
-        title: 'VAI TRÒ', // <-- CỘT MỚI
+        title: 'SỐ ĐIỆN THOẠI',
+        dataIndex: 'phoneNumber',
+        key: 'phoneNumber',
+        render: (phone) => phone ? (
+          <Space>
+             <PhoneOutlined style={{ color: '#1890ff', fontSize: '12px' }} />
+             {phone}
+          </Space>
+        ) : <span style={{ color: '#ccc' }}>---</span>
+      },
+
+      // 4. Vai trò (Có map màu + Tiếng Việt)
+      {
+        title: 'VAI TRÒ',
         dataIndex: 'role',
         key: 'role',
-        render: (role) => (
-          <Tag color={ROLE_COLOR_MAP[role] || 'default'}>
-            {role}
-          </Tag>
-        ),
+        render: (role) => {
+          const config = ROLE_CONFIG[role] || ROLE_CONFIG['default'];
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
       },
+
+      // 5. Trạng thái (Map màu + Tiếng Việt)
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
         key: 'status',
-        render: (status) => (
-          <Tag color={STATUS_COLOR_MAP[status] || 'default'}>
-            {status.toUpperCase()}
-          </Tag>
-        ),
+        render: (status) => {
+          const config = STATUS_CONFIG[status] || STATUS_CONFIG['default'];
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
       },
+
+      // 6. Hành động
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
+        witdh: 120,
         render: (_, record) => (
           <Space size="middle">
-            <Button 
-              type="text" 
-              icon={<EditOutlined />} 
-              style={{ color: '#1890ff' }} 
-              onClick={() => onEdit(record)}
-            />
-            <Popconfirm
-              title="Bạn chắc chắn muốn xóa?"
-              onConfirm={() => onDelete(record.id)}
-              okText="Xóa"
-              cancelText="Hủy"
-            >
-              <Button type="text" icon={<DeleteOutlined />} danger />
-            </Popconfirm>
+            <Tooltip title="Sửa thông tin">
+              <Button 
+                type="primary" ghost // Nút viền xanh, nền trắng nhìn nhẹ nhàng hơn
+                icon={<EditOutlined />} 
+                onClick={() => onEdit(record)} 
+              />
+            </Tooltip>
+
+            <Tooltip title="Xóa Admin">
+              <Popconfirm
+                title="Xóa người dùng này?"
+                description="Hành động này không thể hoàn tác!"
+                onConfirm={() => onDelete(record.id)}
+                okText="Xóa"
+                cancelText="Hủy"
+                okButtonProps={{ danger: true }}
+              >
+                <Button type="primary" danger icon={<DeleteOutlined />} />
+              </Popconfirm>
+            </Tooltip>
           </Space>
         ),
       },
     ],
-    [STATUS_COLOR_MAP, ROLE_COLOR_MAP, onEdit, onDelete] // Thêm ROLE_COLOR_MAP
+    [onEdit, onDelete]
   );
 
   return (
@@ -76,7 +125,8 @@ const AdminTable = ({
         showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} trên ${total} kết quả`,
       }}
       onChange={onTableChange}
-      className={styles.adminTable} // Sửa tên class
+      className={styles.adminTable}
+      rowKey="id" // Quan trọng: Giúp React định danh dòng
     />
   );
 };

@@ -1,13 +1,13 @@
 // src/pages/RouteManagementPage/RouteManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined,ReloadOutlined } from '@ant-design/icons';
 
-// 1. Import Bảng và Modal CỦA TUYẾN
 import RouteTable from '~/features/routes/components/RouteTable';
 import RouteFormModal from '~/features/routes/components/RouteFormModal';
+import RouteDrawModal from '~/features/routes/components/RouteDrawModal/RouteDrawModal';
+import RouteStationModal from '~/features/routes/components/RouteStationModal/RouteStationModal';
 
-// 2. Import Service CỦA TUYẾN
 import { routeService } from '~/services/routeService';
 
 import styles from './RouteManagementPage.module.css';
@@ -23,14 +23,12 @@ const RouteManagementPage = () => {
     total: 0,
   });
 
-  // --- 4. SỬA CÁC HÀM SERVICE ---
+  // --- 1. FETCH DATA ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // [NÂNG CẤP 1] GỌI HÀM getAll
       const result = await routeService.getAll(page, pageSize);
       
-      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
       const list = result.data || result || [];
       const totalCount = result.total || list.length || 0;
 
@@ -58,7 +56,6 @@ const RouteManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // [NÂNG CẤP 2] GỌI HÀM delete
       await routeService.delete(id);
       message.success('Xóa tuyến thành công!');
       fetchData(pagination.current, pagination.pageSize);
@@ -67,7 +64,7 @@ const RouteManagementPage = () => {
     }
   };
 
-  // --- 5. STATE MODAL ---
+  // --- MODAL FORM (THÊM/SỬA THÔNG TIN) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
 
@@ -90,24 +87,74 @@ const RouteManagementPage = () => {
     fetchData(); 
   };
 
+  // --- MODAL VẼ MAP (LOGIC QUAN TRỌNG) ---
+  const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
+  const [routeToDraw, setRouteToDraw] = useState(null);
+
+  const handleOpenMap = (record) => {
+    setRouteToDraw(record);
+    setIsDrawModalOpen(true);
+  };
+
+  // [ĐÃ SỬA LỖI TẠI ĐÂY]
+const handleSaveMap = async (id, coordinates) => {
+    try {
+      // SỬA ĐỔI 1: Không dùng JSON.stringify nữa.
+      // Vì cột path_json trong DB là kiểu JSON, nó nhận trực tiếp Array.
+      
+      // SỬA ĐỔI 2: Đổi tên key từ 'path' thành 'path_json' (cho khớp DB)
+      await routeService.update(id, { path_json: coordinates }); 
+
+      message.success('Cập nhật lộ trình thành công!');
+      
+      setIsDrawModalOpen(false);
+      setRouteToDraw(null);
+
+      // Tải lại dữ liệu mới nhất
+      fetchData(pagination.current, pagination.pageSize); 
+    } catch (error) {
+      console.error(error);
+      message.error('Lỗi khi lưu lộ trình');
+    }
+  };
+
+  // --- MODAL TRẠM ---
+  const [isStationModalOpen, setIsStationModalOpen] = useState(false);
+  const [routeToAssign, setRouteToAssign] = useState(null);
+  
+  const handleOpenStationModal = (record) => {
+    setRouteToAssign(record);
+    setIsStationModalOpen(true);
+  };
+
   return (
     <div className={styles.pageContainer}>
-      {/* --- HEADER CỦA TRANG --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
           Quản lý tuyến
         </Title>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={handleOpenAddModal}
-        >
-          Thêm tuyến mới
-        </Button>
+
+         <Flex gap="small">
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
+          >
+            Thêm tuyến mới
+          </Button>
+         </Flex>
+
       </Flex>
 
-      {/* --- BẢNG --- */}
       <RouteTable 
         data={data}
         loading={loading}
@@ -115,15 +162,29 @@ const RouteManagementPage = () => {
         onTableChange={handleTableChange}
         onEdit={handleOpenEditModal}
         onDelete={handleDelete}
+        onEditMap={handleOpenMap}
+        onEditStations={handleOpenStationModal}
       />
 
-      {/* --- MODAL --- */}
       <RouteFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
         editingRoute={editingRoute}
       />
+
+      <RouteDrawModal
+        open={isDrawModalOpen}
+        editingRoute={routeToDraw}
+        onClose={() => setIsDrawModalOpen(false)}
+        onSave={handleSaveMap} // Hàm đã sửa lỗi
+      />
+
+      <RouteStationModal
+        open={isStationModalOpen}
+        editingRoute={routeToAssign}
+        onClose={() => setIsStationModalOpen(false)}
+      />      
     </div>
   );
 };

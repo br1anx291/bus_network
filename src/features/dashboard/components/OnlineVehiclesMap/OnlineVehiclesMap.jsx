@@ -1,146 +1,67 @@
-// // src/components/Dashboard/OnlineVehiclesMap.jsx
-// import React, { useState } from 'react';
-// import Map, { Marker, Popup, NavigationControl, FullscreenControl } from 'react-map-gl';
-// import 'mapbox-gl/dist/mapbox-gl.css';
-// import { Card, Typography } from 'antd'; 
-// import busMarker from '../../assets/bus-marker.png';
-
-
-// const { Title } = Typography;
-// // const [selectedBus, setSelectedBus] = useState(null);
-
-// const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-// const BUS_LOCATIONS = [
-//   { id: 1, lat: 10.7769, lng: 106.7009, name: 'Bus 50H-123' },
-//   { id: 2, lat: 10.7796, lng: 106.6990, name: 'Bus 51B-456' },
-//   { id: 3, lat: 10.7725, lng: 106.6980, name: 'Bus 59Z-789' },
-// ];
-
-// const OnlineVehiclesMap = () => {
-//   const [selectedBus, setSelectedBus] = useState(null);
-//   const initialViewState = {
-//     latitude: 10.7760,
-//     longitude: 106.7000,
-//     zoom: 14,
-//   };
-
-//   return (
-//     <Card 
-//       title={
-//         <Title level={4} style={{ margin: 0 }}>
-//           Tổng quan xe trực tuyến
-//         </Title>
-//       }
-//       style={{ height: '100%' }}
-//       styles={{ body: { height: '400px', padding: '12px' } }} 
-//     >
-//       <div style={{ width: '100%', height: '100%', borderRadius: '8px', overflow: 'hidden' }}>
-//         <Map
-//           initialViewState={initialViewState}
-//           style={{ width: '100%', height: '100%' }}
-//           mapStyle="mapbox://styles/mapbox/streets-v12"
-//           mapboxAccessToken={MAPBOX_TOKEN}
-//           attributionControl={false}
-//         >
-//           <NavigationControl position="bottom-right" />
-//           <FullscreenControl position="top-right" />
-
-//           {BUS_LOCATIONS.map((bus) => (
-//             <Marker
-//               key={bus.id}
-//               latitude={bus.lat}
-//               longitude={bus.lng}
-//               anchor="bottom"
-//             >
-
-//               <div
-//                 onClick={(e) => {
-
-//                   e.stopPropagation?.();
-//                   if (e?.originalEvent?.stopPropagation) e.originalEvent.stopPropagation();
-//                   setSelectedBus(bus);
-//                 }}
-//                 onPointerDown={(e) => {
-//                   e.stopPropagation?.();
-//                   if (e?.originalEvent?.stopPropagation) e.originalEvent.stopPropagation();
-//                 }}
-//                 title={bus.name}
-//                 style={{
-//                   cursor: 'pointer',
-//                   // transform: 'translate(-50%, -100%)',
-//                   display: 'inline-block',
-//                 }}
-//               >
-//                 <img
-//                   src={busMarker}
-//                   alt={bus.name}
-//                   style={{
-//                     width: '50px',
-//                     height: '50px',
-//                     filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.3))',
-//                     userSelect: 'none',
-//                     WebkitUserDrag: 'none',
-//                   }}
-//                   draggable={false}
-//                 />
-//               </div>
-//             </Marker>
-//           ))}
-
-//           {/* Popup hiển thị khi click marker */}
-//           {selectedBus && (
-//             <Popup
-//               latitude={selectedBus.lat}
-//               longitude={selectedBus.lng}
-//               anchor="bottom-left"    
-//               offset={[25, -50]}   
-
-//               onClose={() => setSelectedBus(null)}
-//               closeOnClick={true}  
-//               closeButton={true}
-//             >
-//               <div style={{ minWidth: 180, padding: '8px 5px', fontFamily: 'sans-serif' }}>
-//                 <h4 style={{ margin: '0 0 6px', color: '#D32F2F', fontWeight: 600, fontSize:'15px' }}>{selectedBus.name}</h4>
-//                 <div style={{ fontSize: 13, color: '#333', lineHeight: 1.6 }}>
-//                     <div><strong>Tài xế:</strong> {selectedBus.driver || 'Nguyễn Văn A'}</div>
-//                     <div><strong>Tuyến:</strong> {selectedBus.route || 'Bến Thành - Suối Tiên'}</div>
-//                     <div><strong>Tốc độ:</strong> {selectedBus.speed ? `${selectedBus.speed} km/h` : '35 km/h'}</div>
-//                   <div><strong>Tọa độ:</strong> {selectedBus.lat.toFixed(4)}, {selectedBus.lng.toFixed(4)}</div>
-//                 </div>
-//               </div>
-//             </Popup>
-//           )}
-
-//         </Map>
-//       </div>
-//     </Card>
-//   );
-// };
-
-// export default OnlineVehiclesMap;
-
 // src/components/Dashboard/OnlineVehiclesMap.jsx
-import React, { useState, useMemo, useCallback } from 'react';
-import Map, { Popup, NavigationControl, FullscreenControl } from 'react-map-gl';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import MapGL, { Popup, NavigationControl, FullscreenControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, Typography } from 'antd';
-import BusMarker from '../BusMarker'; // Import component con
-import { BUS_LOCATIONS, initialViewState } from  '../../data/dashboardMockData';
-import styles from './OnlineVehiclesMap.module.css'; // <-- 2. IMPORT MODULE
+import pb from '~/api/pocketbase'; 
+import BusMarker from '~/features/dashboard/components/BusMarker/BusMarker'; 
+import { initialViewState } from '../../data/dashboardMockData'; 
+import styles from './OnlineVehiclesMap.module.css'; 
+
 const { Title } = Typography;
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
 
-// Hàm này vẫn giữ nguyên ở ngoài, rất tốt
+// --- HÀM XỬ LÝ DỮ LIỆU ---
+const processLatestBusLocations = (records) => {
+  const busMap = new Map();
+
+  // Sắp xếp log mới nhất lên đầu
+  const sortedRecords = [...records].sort((a, b) => new Date(b.created) - new Date(a.created));
+
+  sortedRecords.forEach((record) => {
+    // 1. Strict Check: Phải có ID xe
+    const busId = record.buses; 
+    
+    // 2. Strict Check: Trạng thái phải là 'active' (Phòng hờ API filter sót)
+    // Lưu ý: data từ API getFullList đã lọc rồi, nhưng check thêm ở đây không thừa
+    const busInfo = record.expand?.buses || {};
+    const isActive = busInfo.status === 'active';
+
+    if (busId && isActive && !busMap.has(busId)) {
+      const lat = record.latitude; 
+      const lng = record.longitude; 
+
+      if (lat && lng) {
+         const driverInfo = busInfo.expand?.driver || {}; 
+         const routeInfo = busInfo.expand?.current_route || {};
+
+         busMap.set(busId, {
+            id: busId, 
+            locationId: record.id,
+            lat: Number(lat),
+            lng: Number(lng),
+            speed: record.speed || 0,
+            created: record.created,
+            
+            licensePlate: busInfo.license_plate || busInfo.plate_number || '---',
+            driver: driverInfo.name || driverInfo.fullName || 'Chưa phân công',
+            route: routeInfo.name || routeInfo.route_name || 'Chưa phân tuyến'
+         });
+      }
+    }
+  });
+
+  return Array.from(busMap.values());
+};
+
 const renderPopupInfo = (bus) => {
   return (
     <div className={styles.popupContainer}>
-      <h4 className={styles.popupTitle}>{bus.name}</h4>
+      <h4 className={styles.popupTitle}>Xe {bus.licensePlate}</h4>
       <div className={styles.popupInfo}>
-        <div><strong>Tài xế:</strong> {bus.driver || 'Chưa cập nhật'}</div>
-        <div><strong>Tuyến:</strong> {bus.route || 'Chưa cập nhật'}</div>
-        <div><strong>Tốc độ:</strong> {bus.speed ? `${bus.speed} km/h` : 'Chưa cập nhật'}</div>
-        <div><strong>Tọa độ:</strong> {bus.lat.toFixed(4)}, {bus.lng.toFixed(4)}</div>
+        <div><strong>Tài xế:</strong> {bus.driver}</div>
+        <div><strong>Tuyến:</strong> {bus.route}</div>
+        <div><strong>Cập nhật:</strong> {new Date(bus.created).toLocaleTimeString()}</div>
       </div>
     </div>
   );
@@ -148,10 +69,98 @@ const renderPopupInfo = (bus) => {
 
 const OnlineVehiclesMap = () => {
   const [selectedBus, setSelectedBus] = useState(null);
+  const [busLocations, setBusLocations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [rawCount, setRawCount] = useState(0);
+
+  useEffect(() => {
+    const fetchAndSubscribe = async () => {
+      try {
+        setLoading(true);
+
+        // -----------------------------------------------------------
+        // 1. API FILTERING (LỌC NGAY TẠI SERVER)
+        // -----------------------------------------------------------
+        const records = await pb.collection('bus_locations').getFullList({
+          sort: '-created',
+          // CÚ PHÁP QUAN TRỌNG:
+          // buses != '' : Loại bỏ log rác không có xe
+          // buses.status = 'active' : Chỉ lấy log của xe có status là 'active'
+          filter: "buses != '' && buses.status = 'active'", 
+          expand: 'buses.driver,buses.current_route', 
+        });
+
+        setRawCount(records.length);
+        const uniqueBuses = processLatestBusLocations(records);
+        setBusLocations(uniqueBuses);
+        setLoading(false);
+
+        // -----------------------------------------------------------
+        // 2. REAL-TIME FILTERING
+        // -----------------------------------------------------------
+        pb.collection('bus_locations').subscribe('*', function (e) {
+          // Chỉ xử lý Create hoặc Update
+          if (e.action === 'create' || e.action === 'update') {
+            const record = e.record;
+            const busId = record.buses;
+            
+            if (!busId) return;
+
+            // CHECK TRẠNG THÁI REAL-TIME
+            // Khi có bản tin mới, ta phải xem thông tin xe đi kèm có active không
+            const busInfo = record.expand?.buses || {};
+            
+            // Nếu xe KHÔNG active, ta phải loại bỏ nó khỏi bản đồ (trường hợp xe đang chạy thì bị set Maintenance)
+            if (busInfo.status !== 'active') {
+                setBusLocations(prev => prev.filter(b => b.id !== busId));
+                return;
+            }
+
+            // Nếu Active thì cập nhật bình thường
+            setBusLocations(prev => {
+                const lat = record.latitude;
+                const lng = record.longitude;
+
+                if (!lat || !lng) return prev;
+
+                const driverInfo = busInfo.expand?.driver || {}; 
+                const routeInfo = busInfo.expand?.current_route || {}; 
+
+                const newBusData = {
+                    id: busId,
+                    locationId: record.id,
+                    lat: Number(lat),
+                    lng: Number(lng),
+                    speed: record.speed || 0,
+                    created: record.created,
+                    
+                    licensePlate: busInfo.license_plate || '---',
+                    driver: driverInfo.name || driverInfo.fullName || 'Chưa phân công',
+                    route: routeInfo.name || routeInfo.route_name || 'Chưa phân tuyến'
+                };
+
+                const others = prev.filter(b => b.id !== busId);
+                return [...others, newBusData];
+            });
+          }
+        });
+
+      } catch (error) {
+        console.error("Lỗi tải map:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchAndSubscribe();
+
+    return () => {
+      pb.collection('bus_locations').unsubscribe();
+    };
+  }, []);
 
   const handleMarkerClick = useCallback((bus) => {
     setSelectedBus(bus);
-  }, []); 
+  }, []);
 
   const handlePopupClose = useCallback(() => {
     setSelectedBus(null);
@@ -159,31 +168,34 @@ const OnlineVehiclesMap = () => {
 
   const markers = useMemo(
     () =>
-      BUS_LOCATIONS.map((bus) => (
+      busLocations.map((bus) => (
         <BusMarker
           key={bus.id}
           bus={bus}
           onMarkerClick={handleMarkerClick}
         />
       )),
-    [BUS_LOCATIONS, handleMarkerClick]
+    [busLocations, handleMarkerClick]
   );
 
   return (
     <Card
       title={
-        <Title level={4} className={styles.cardTitle}>
-          Tổng quan xe trực tuyến
-        </Title>
+        <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}>
+           <Title level={4} className={styles.cardTitle}>
+             Xe trực tuyến ({busLocations.length})
+           </Title>
+           <span style={{fontSize: '12px', color: '#888', fontWeight: 'normal'}}>
+             {loading ? 'Đang tải...' : `(Active Logs: ${rawCount})`}
+           </span>
+        </div>
       }
       className={styles.card}
-      // 1. SỬA TẠI ĐÂY: Dùng 'classNames' thay vì 'styles'
-      classNames={{ body: styles.cardBody }} 
+      classNames={{ body: styles.cardBody }}
     >
       <div className={styles.mapWrapper}>
-        <Map
+        <MapGL
           initialViewState={initialViewState}
-          // 2. SỬA TẠI ĐÂY: Trả lại 'style' prop, xóa 'className'
           style={{ width: '100%', height: '100%' }}
           mapStyle="mapbox://styles/mapbox/streets-v12"
           mapboxAccessToken={MAPBOX_TOKEN}
@@ -199,7 +211,7 @@ const OnlineVehiclesMap = () => {
               latitude={selectedBus.lat}
               longitude={selectedBus.lng}
               anchor="bottom-left"
-              offset={[25, -50]}
+              offset={[25, -20]}
               onClose={handlePopupClose}
               closeOnClick={true}
               closeButton={true}
@@ -207,7 +219,7 @@ const OnlineVehiclesMap = () => {
               {renderPopupInfo(selectedBus)}
             </Popup>
           )}
-        </Map>
+        </MapGL>
       </div>
     </Card>
   );

@@ -1,20 +1,16 @@
 // src/features/admins/components/AdminFormModal/AdminFormModal.jsx
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message } from 'antd'; 
+import { Modal, Form, Input, Select, message, Row, Col } from 'antd'; 
 
-// 1. Import adminService
+// Import Service
 import { adminService } from '~/services/adminService'; 
-import { STATUS_COLOR_MAP, ROLE_COLOR_MAP } from '../../data/adminMockData';
 
-// 2. Lấy options cho cả 2 trường
-const statusOptions = Object.keys(STATUS_COLOR_MAP).map(status => ({
-  value: status,
-  label: status,
-}));
-const roleOptions = Object.keys(ROLE_COLOR_MAP).map(role => ({
-  value: role,
-  label: role,
-}));
+// Định nghĩa Options cố định (Chuẩn với Service)
+const ROLE_OPTIONS = [
+  { value: 'superadmin', label: 'Quản trị viên (Super Admin)' },
+  { value: 'manager',    label: 'Quản lý (Manager)' },
+  { value: 'staff',      label: 'Nhân viên (Staff)' },
+];
 
 const AdminFormModal = ({ open, onClose, onSuccess, editingAdmin }) => { 
   const [form] = Form.useForm();
@@ -22,13 +18,24 @@ const AdminFormModal = ({ open, onClose, onSuccess, editingAdmin }) => {
 
   const isEditing = !!editingAdmin;
 
-  // 3. Đổ dữ liệu vào form khi sửa
+  // 1. Đổ dữ liệu vào form
   useEffect(() => {
     if (open) {
       if (isEditing) {
-        form.setFieldsValue(editingAdmin);
+        // Khi sửa: Load data cũ
+        form.setFieldsValue({
+          username: editingAdmin.username,
+          email: editingAdmin.email,
+          phoneNumber: editingAdmin.phoneNumber,
+          role: editingAdmin.role,
+          // Không load password
+        });
       } else {
+        // Khi thêm mới: Reset form và set giá trị mặc định
         form.resetFields();
+        form.setFieldsValue({
+          role: 'staff', // Mặc định là nhân viên
+        });
       }
     }
   }, [editingAdmin, form, isEditing, open]);
@@ -39,103 +46,117 @@ const AdminFormModal = ({ open, onClose, onSuccess, editingAdmin }) => {
       setIsLoading(true);
 
       if (isEditing) {
-        // 4. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
+        // GỌI UPDATE
         await adminService.update(editingAdmin.id, values);
-        message.success('Cập nhật Admin thành công!');
+        message.success('Cập nhật thông tin thành công!');
       } else {
-        // 5. [NÂNG CẤP] Gọi hàm create
+        // GỌI CREATE
         await adminService.create(values);
-        message.success('Thêm Admin mới thành công!');
+        message.success('Tạo người dùng mới thành công!');
       }
 
-      onSuccess(); // Tải lại bảng
+      onSuccess(); // Refresh bảng
       onClose();   // Đóng modal
 
     } catch (error) {
-      console.error('Lỗi khi lưu thông tin Admin:', error);
-      if (error.message) {
-         message.error(error.message || 'Đã có lỗi xảy ra');
-      }
+      console.error('Lỗi form:', error);
+      // Xử lý lỗi trả về từ PocketBase (thường là validation error)
+      const errorMsg = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra';
+      message.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
   };
 
-  return (
+return (
     <Modal
-      title={isEditing ? 'Chỉnh sửa thông tin Admin' : 'Thêm Admin mới'}
+      title={isEditing ? 'Cập nhật Admin' : 'Thêm Admin mới'}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
       confirmLoading={isLoading}
-      forceRender
       width={600}
-      okText={isEditing ? 'Lưu thay đổi' : 'Thêm mới'}
-      cancelText="Hủy bỏ"
     >
-      <Form
-        form={form}
-        layout="vertical"
-        name="admin_form"
-        style={{ marginTop: '24px' }}
-        initialValues={{ status: 'Hoạt động', role: 'Staff' }}
-      >
-        {/* TÊN ADMIN */}
-        <Form.Item
-          name="name"
-          label="Tên Admin"
-          rules={[{ required: true, message: 'Vui lòng nhập tên!' }]}
-        >
-          <Input placeholder="Ví dụ: Tuyết My" />
-        </Form.Item>
+      <Form form={form} layout="vertical" style={{ marginTop: '20px' }}>
+        
+        {/* [THAY ĐỔI] Chỉ còn Username, không còn Name */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="username"
+              label="Username (Tên đăng nhập)"
+              rules={[
+                { required: true, message: 'Vui lòng nhập Username!' },
+                { pattern: /^[a-zA-Z0-9_]+$/, message: 'Không chứa ký tự đặc biệt!' },
+                { min: 3, message: 'Tối thiểu 3 ký tự' }
+              ]}
+            >
+              <Input placeholder="vd: admin_01" />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+             <Form.Item
+              name="role"
+              label="Vai trò"
+              rules={[{ required: true, message: 'Chọn vai trò!' }]}
+            >
+              <Select options={ROLE_OPTIONS} placeholder="Chọn quyền" />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        {/* EMAIL */}
-        <Form.Item
-          name="email"
-          label="Email (Tài khoản)"
-          rules={[
-            { required: true, message: 'Vui lòng nhập email!' },
-            { type: 'email', message: 'Email không hợp lệ!' }
-          ]}
-        >
-          <Input placeholder="Vi dụ: my.tuyet@bus.com" />
-        </Form.Item>
+        {/* HÀNG 2: EMAIL + SĐT */}
+        <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[{ required: true, message: 'Nhập email!' }, { type: 'email' }]}
+            >
+              <Input placeholder="contact@example.com" disabled={isEditing} />
+            </Form.Item>
+          </Col>
+          <Col span={12}>
+            <Form.Item
+              name="phoneNumber"
+              label="Số điện thoại"
+              rules={[{ pattern: /^[0-9]{10,11}$/, message: 'SĐT không hợp lệ!' }]}
+            >
+              <Input placeholder="09xxxxxxxxx" />
+            </Form.Item>
+          </Col>
+        </Row>
 
-        {/* VAI TRÒ */}
-        <Form.Item
-          name="role"
-          label="Vai trò"
-          rules={[{ required: true, message: 'Vui lòng chọn vai trò!' }]}
-        >
-          <Select
-            options={roleOptions}
-            placeholder="Chọn vai trò"
-          />
-        </Form.Item>
-
-        {/* TRẠNG THÁI */}
-        <Form.Item
-          name="status"
-          label="Trạng thái"
-          rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
-        >
-          <Select
-            options={statusOptions}
-            placeholder="Chọn trạng thái"
-          />
-        </Form.Item>
-
-        {/* CHỈ HIỆN PASSWORD KHI THÊM MỚI (Optional) */}
+        {/* MẬT KHẨU (Chỉ hiện khi tạo mới) */}
         {!isEditing && (
-          <Form.Item
-            name="password"
-            label="Mật khẩu khởi tạo"
-            rules={[{ required: true, message: 'Vui lòng nhập mật khẩu!' }]}
-          >
-            <Input.Password placeholder="Nhập mật khẩu cho Admin mới" />
-          </Form.Item>
+          <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '6px' }}>
+             <p style={{marginBottom: 5, fontWeight: 500}}>Mật khẩu:</p>
+             <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item name="password" rules={[{ required: true }, { min: 8 }]}>
+                  <Input.Password placeholder="Mật khẩu" />
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item 
+                  name="passwordConfirm" 
+                  dependencies={['password']}
+                  rules={[
+                    { required: true },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) return Promise.resolve();
+                        return Promise.reject(new Error('Không khớp!'));
+                      },
+                    }),
+                  ]}
+                >
+                  <Input.Password placeholder="Xác nhận" />
+                </Form.Item>
+              </Col>
+            </Row>
+          </div>
         )}
-
       </Form>
     </Modal>
   );

@@ -1,7 +1,6 @@
-// src/pages/PassengerManagementPage/PassengerManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 // 1. Import Bảng và Modal CỦA hành khách
 import PassengerTable from '~/features/passengers/components/PassengerTable/PassengerTable';
@@ -35,7 +34,9 @@ const PassengerManagementPage = () => {
       const list = result.data || result || [];
       const totalCount = result.total || list.length || 0;
 
+      // Add key for Ant Design Table
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
+      
       setData(mappedData);
       setPagination({
         ...pagination,
@@ -98,14 +99,23 @@ const PassengerManagementPage = () => {
         <Title level={2} className={styles.pageTitle}>
           Quản lý hành khách 
         </Title>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={handleOpenAddModal}
+        <Flex gap="small">
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
         >
           Thêm hành khách mới 
         </Button>
+        </Flex>
       </Flex>
 
       {/* --- BẢNG DỮ LIỆU --- */}

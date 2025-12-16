@@ -1,13 +1,13 @@
-// src/services/passengerService.js
-import axiosClient from '~/api/axiosClient';
-import { rawPassengerData } from '~/features/passengers/data/passengerMockData'; // <-- 1. SỬA IMPORT
+import pb from '~/api/pocketbase';
+import { rawPassengerData } from '~/features/passengers/data/passengerMockData';
 
-// --- CẤU HÌNH CHẾ ĐỘ ---
-const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
+// --- CẤU HÌNH ---
+// true: Dùng Mock (RAM) | false: Dùng API thật (PocketBase)
+const USE_MOCK = false; 
 const MOCK_DELAY = 500;
 
-// --- KHO DATA GIẢ LẬP ---
-let localPassengers = [...rawPassengerData]; // <-- Đổi tên biến (tránh trùng lặp)
+// --- KHO DATA GIẢ LẬP (BACKUP) ---
+let localPassengers = [...rawPassengerData];
 
 // Hàm Helper giả lập độ trễ
 const mockDelay = (data) => {
@@ -18,107 +18,161 @@ const mockDelay = (data) => {
   });
 };
 
+// --- [QUAN TRỌNG] HÀM MAPPING (CẦU NỐI DB <-> UI) ---
+const mapToUI = (record) => {
+  return {
+    id: record.id,
+    name: record.name || 'Chưa cập nhật',
+    email: record.email || '',
+    phone: record.phone || '',
+    address: record.address || '',
+    
+    // Status: active, blocked (khớp với options trong DB)
+    status: record.status || 'active',
+    
+    // Avatar: Tạo URL đầy đủ để hiển thị ảnh
+    avatar: record.avatar ? pb.files.getUrl(record, record.avatar) : null,
+    
+    created: record.created,
+    updated: record.updated,
+  };
+};
+
 export const passengerService = {
   
   /**
-   * 1. Lấy danh sách hành khách (Phân trang)
-   * [ĐỔI TÊN] getPassengers -> getAll
+   * 1. Lấy danh sách hành khách (Phân trang & Tìm kiếm)
    */
-  getAll: async (page = 1, pageSize = 10) => {
+  getAll: async (page = 1, pageSize = 10, filters = {}) => {
+    // --- NHÁNH MOCK ---
     if (USE_MOCK) {
-      console.log(`[MOCK API] Get Passengers - Page: ${page}, Size: ${pageSize}`);
-      
+      console.log(`[MOCK API] Get Passengers - Page: ${page}`);
       const start = (page - 1) * pageSize;
-      const end = page * pageSize;
-      const paginatedData = localPassengers.slice(start, end);
-
+      const paginatedData = localPassengers.slice(start, start + pageSize);
       return mockDelay({
         data: paginatedData,
         total: localPassengers.length,
       });
     }
 
-    // Gọi API thật: GET /passengers?page=1&limit=10
-    return axiosClient.get('/passengers', {
-      params: { page, limit: pageSize }
-    });
+    // --- NHÁNH POCKETBASE ---
+    try {
+      // Tìm kiếm theo Tên, Email hoặc Số điện thoại
+      let filterExpr = '';
+      if (filters.search) {
+        filterExpr = `name ~ "${filters.search}" || email ~ "${filters.search}" || phone ~ "${filters.search}"`;
+      }
+
+      const result = await pb.collection('passengers').getList(page, pageSize, {
+        sort: '-created', // Mới nhất lên đầu
+        filter: filterExpr,
+      });
+
+      return {
+        data: result.items.map(mapToUI),
+        total: result.totalItems
+      };
+    } catch (error) {
+      console.error("[PocketBase] Lỗi lấy danh sách hành khách:", error);
+      return { data: [], total: 0 };
+    }
   },
 
   /**
-   * 2. Lấy chi tiết 1 hành khách (Bổ sung)
+   * 2. Lấy chi tiết 1 hành khách
    */
   getById: async (id) => {
     if (USE_MOCK) {
       const passenger = localPassengers.find(p => p.id === id);
       return mockDelay(passenger);
     }
-    return axiosClient.get(`/passengers/${id}`);
+
+    try {
+      const record = await pb.collection('passengers').getOne(id);
+      return mapToUI(record);
+    } catch (error) {
+      console.error(`[PocketBase] Lỗi lấy hành khách ${id}:`, error);
+      throw error;
+    }
   },
 
   /**
-   * 3. Thêm hành khách mới
-   * [ĐỔI TÊN] createPassenger -> create
+   * 3. Thêm hành khách mới (CẬP NHẬT CHO AUTH COLLECTION)
    */
   create: async (data) => {
     if (USE_MOCK) {
       console.log('[MOCK API] Create Passenger:', data);
-
-      const newPassenger = {
-        ...data,
-        id: `p${new Date().getTime()}`,
-      };
-
+      const newPassenger = { ...data, id: `p${Date.now()}` };
       localPassengers.unshift(newPassenger);
-
       return mockDelay(newPassenger);
     }
 
-    // Gọi API thật: POST /passengers
-    return axiosClient.post('/passengers', data);
+    try {
+      // Mật khẩu mặc định cho tất cả hành khách được tạo bởi Admin
+      const DEFAULT_PASSWORD = '12345678';
+
+      const dbPayload = {
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        // Fix lỗi undefined: Nếu không có địa chỉ thì gửi chuỗi rỗng
+        address: data.address || '', 
+        status: data.status || 'active',
+
+        // --- CÁC TRƯỜNG BẮT BUỘC CỦA AUTH COLLECTION ---
+        password: DEFAULT_PASSWORD,
+        passwordConfirm: DEFAULT_PASSWORD,
+        emailVisibility: true, // Cho phép tìm kiếm/xem email công khai (tùy chọn)
+      };
+
+      const record = await pb.collection('passengers').create(dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[PocketBase] Lỗi tạo hành khách:", error);
+      throw error;
+    }
   },
 
   /**
    * 4. Cập nhật hành khách
-   * [ĐỔI TÊN] updatePassenger -> update
    */
   update: async (id, data) => {
     if (USE_MOCK) {
-      console.log(`[MOCK API] Update Passenger ${id}:`, data);
-
-      let targetPassenger = null;
-      localPassengers = localPassengers.map((p) => {
-        if (p.id === id) {
-          targetPassenger = { ...p, ...data };
-          return targetPassenger;
-        }
-        return p;
-      });
-
-      if (targetPassenger) {
-        return mockDelay(targetPassenger);
-      } else {
-        return Promise.reject(new Error('Không tìm thấy hành khách để cập nhật'));
+      const index = localPassengers.findIndex(p => p.id === id);
+      if (index > -1) {
+        localPassengers[index] = { ...localPassengers[index], ...data };
+        return mockDelay(localPassengers[index]);
       }
+      return Promise.reject(new Error('Passenger not found'));
     }
 
-    // Gọi API thật: PUT /passengers/:id
-    return axiosClient.put(`/passengers/${id}`, data);
+    try {
+      const dbPayload = {
+        ...(data.name && { name: data.name }),
+        ...(data.email && { email: data.email }),
+        ...(data.phone && { phone: data.phone }),
+        // Fix lỗi undefined khi update
+        ...(data.address !== undefined && { address: data.address }), 
+        ...(data.status && { status: data.status }),
+      };
+
+      const record = await pb.collection('passengers').update(id, dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error(`[PocketBase] Lỗi cập nhật hành khách ${id}:`, error);
+      throw error;
+    }
   },
 
   /**
    * 5. Xóa hành khách
-   * [ĐỔI TÊN] deletePassenger -> delete
    */
   delete: async (id) => {
     if (USE_MOCK) {
-      console.log(`[MOCK API] Delete Passenger ${id}`);
-
       localPassengers = localPassengers.filter(p => p.id !== id);
-
       return mockDelay({ success: true });
     }
 
-    // Gọi API thật: DELETE /passengers/:id
-    return axiosClient.delete(`/passengers/${id}`);
+    return await pb.collection('passengers').delete(id);
   }
 };

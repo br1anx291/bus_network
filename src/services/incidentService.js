@@ -1,90 +1,141 @@
 // src/services/incidentService.js
-import axiosClient from '~/api/axiosClient';
-import { rawIncidentData } from '~/features/incidents/data/incidentMockData';
+import pb from '~/api/pocketbase';
 
-// --- CẤU HÌNH CHẾ ĐỘ ---
-const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
-const MOCK_DELAY = 500;
+// --- CẤU HÌNH ---
+const USE_MOCK = false; // Chuyển sang FALSE để chạy thật
 
-// --- KHO DATA GIẢ LẬP ---
-let localIncidents = [...rawIncidentData];
+// --- HÀM MAPPING (Cầu nối DB -> UI) ---
+// Giúp làm phẳng dữ liệu từ các bảng liên quan (Drivers, Buses, Routes)
+const mapToUI = (record) => {
+  const expand = record.expand || {}; // Lấy dữ liệu mở rộng
 
-// Hàm Helper giả lập độ trễ
-const mockDelay = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, MOCK_DELAY);
-  });
+  return {
+    id: record.id,
+    
+    // 1. Thông tin chính
+    title: record.title,
+    description: record.description,
+    
+    // 2. Phân loại & Mức độ
+    category: record.category || 'other',
+    severity: record.severity || 'low',
+    
+    // 3. Trạng thái (pending, processing, resolved)
+    status: record.status || 'pending',
+
+    // 4. Thông tin liên quan (Đã flatten để hiển thị lên bảng dễ dàng)
+    // - Xe buýt
+    busId: record.related_bus,
+    busPlate: expand.related_bus ? expand.related_bus.license_plate : '---',
+    
+    // - Tài xế (Đổi từ User sang Driver theo yêu cầu mới)
+    driverId: record.related_driver,
+    driverName: expand.related_driver ? expand.related_driver.name : '---',
+    
+    // - Tuyến
+    routeId: record.related_route,
+    routeName: expand.related_route ? expand.related_route.name : '---',
+
+    // 5. Thời gian
+    createdAt: record.created,
+    updatedAt: record.updated,
+  };
 };
 
 export const incidentService = {
   
   /**
-   * 1. Lấy danh sách sự cố (Phân trang)
-   * [ĐỔI TÊN] getIncidents -> getAll
+   * 1. Lấy danh sách sự cố
+   * Có expand để lấy chi tiết Xe, Tài xế, Tuyến
    */
   getAll: async (page = 1, pageSize = 10) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Get Incidents - Page: ${page}, Size: ${pageSize}`);
-      
-      const start = (page - 1) * pageSize;
-      const end = page * pageSize;
-      const paginatedData = localIncidents.slice(start, end);
+    if (USE_MOCK) return { data: [], total: 0 };
 
-      return mockDelay({
-        data: paginatedData,
-        total: localIncidents.length,
+    try {
+      const result = await pb.collection('incidents').getList(page, pageSize, {
+        sort: '-created', // Mới nhất lên đầu
+        // [QUAN TRỌNG] Expand để lấy dữ liệu liên kết
+        expand: 'related_bus,related_driver,related_route', 
       });
-    }
 
-    // Gọi API thật: GET /incidents?page=1&limit=10
-    return axiosClient.get('/incidents', {
-      params: { page, limit: pageSize }
-    });
+      return {
+        data: result.items.map(mapToUI),
+        total: result.totalItems
+      };
+    } catch (error) {
+      console.error("[IncidentService] Lỗi lấy danh sách:", error);
+      return { data: [], total: 0 };
+    }
   },
 
   /**
-   * 2. Cập nhật trạng thái hoàn thành
-   * [ĐỔI TÊN] updateIncidentCompletion -> updateCompletion
+   * 2. Tạo sự cố mới
    */
-  updateCompletion: async (id, isCompleted) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Update Completion ${id}:`, isCompleted);
+  create: async (data) => {
+    try {
+      const dbPayload = {
+        title: data.title,
+        description: data.description,
+        category: data.category,
+        severity: data.severity,
+        status: data.status || 'pending',
+        
+        // Các trường relation (Chỉ gửi ID)
+        related_bus: data.busId,
+        related_driver: data.driverId,
+        related_route: data.routeId,
+      };
 
-      let targetIncident = null;
-      localIncidents = localIncidents.map((item) => {
-        if (item.id === id) {
-          // LOGIC NGHIỆP VỤ CỦA BẠN:
-          targetIncident = { 
-            ...item, 
-            isCompleted: isCompleted,
-            status: isCompleted ? 'Đã xử lý' : 'Mới' 
-          };
-          return targetIncident;
-        }
-        return item;
-      });
-
-      if (targetIncident) {
-        return mockDelay({ success: true, incident: targetIncident });
-      } else {
-        return Promise.reject(new Error('Không tìm thấy sự cố để cập nhật'));
-      }
+      const record = await pb.collection('incidents').create(dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[IncidentService] Lỗi tạo sự cố:", error);
+      throw error;
     }
-
-    // Gọi API thật: PATCH /incidents/:id/completion
-    return axiosClient.patch(`/incidents/${id}/completion`, { isCompleted });
   },
 
   /**
-   * 3. Xóa sự cố (Thêm vào cho đủ bộ CRUD)
+   * 3. Cập nhật sự cố (Bao gồm cả đổi trạng thái và nội dung)
+   * Thay thế cho hàm updateCompletion cũ
+   */
+  update: async (id, data) => {
+    try {
+      // Chuẩn bị payload, chỉ lấy những gì cần thiết
+      const dbPayload = {};
+      if (data.title) dbPayload.title = data.title;
+      if (data.description) dbPayload.description = data.description;
+      if (data.category) dbPayload.category = data.category;
+      if (data.severity) dbPayload.severity = data.severity;
+      if (data.status) dbPayload.status = data.status;
+      
+      // Relation
+      if (data.busId !== undefined) dbPayload.related_bus = data.busId;
+      if (data.driverId !== undefined) dbPayload.related_driver = data.driverId;
+      if (data.routeId !== undefined) dbPayload.related_route = data.routeId;
+
+      const record = await pb.collection('incidents').update(id, dbPayload);
+      
+      // Lấy lại data mới nhất kèm expand để update UI mượt mà
+      const expandedRecord = await pb.collection('incidents').getOne(record.id, {
+        expand: 'related_bus,related_driver,related_route'
+      });
+
+      return mapToUI(expandedRecord);
+    } catch (error) {
+      console.error(`[IncidentService] Lỗi cập nhật ${id}:`, error);
+      throw error;
+    }
+  },
+
+  /**
+   * 4. Xóa sự cố
    */
   delete: async (id) => {
-    if (USE_MOCK) {
-      localIncidents = localIncidents.filter(i => i.id !== id);
-      return mockDelay({ success: true });
+    try {
+      return await pb.collection('incidents').delete(id);
+    } catch (error) {
+      console.error("[IncidentService] Lỗi xóa:", error);
+      throw error;
     }
-    return axiosClient.delete(`/incidents/${id}`);
   }
 };

@@ -1,75 +1,127 @@
-// src/services/pickupRequestService.js
-import axiosClient from '~/api/axiosClient';
-import { rawPickupRequestData } from '~/features/pickupRequests/data/pickupRequestMockData';
+import pb from '~/api/pocketbase';
 
-// --- CẤU HÌNH CHẾ ĐỘ ---
-const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
+// --- CẤU HÌNH ---
+const USE_MOCK = false; 
 const MOCK_DELAY = 500;
 
-// --- KHO DATA GIẢ LẬP ---
-let localRequests = [...rawPickupRequestData];
-
-// Hàm Helper giả lập độ trễ
+// Hàm Helper giả lập độ trễ (Giữ lại để debug nếu cần)
 const mockDelay = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, MOCK_DELAY);
-  });
+  return new Promise((resolve) => setTimeout(() => resolve(data), MOCK_DELAY));
+};
+
+// --- [QUAN TRỌNG] HÀM MAPPING DỮ LIỆU ---
+// Giữ nguyên logic mapping rất tốt này
+const mapToUI = (record) => {
+  const expand = record.expand || {};
+
+  const toArray = (data) => (Array.isArray(data) ? data : (data ? [data] : []));
+
+  const passenger = toArray(expand.passenger)[0];
+  const station = toArray(expand.stations)[0];
+  const trip = toArray(expand.trips)[0];
+  const bus = toArray(expand.buses)[0];
+
+  return {
+    id: record.id,
+    
+    // 1. Thông tin trạng thái & thời gian
+    status: record.status || 'pending', 
+    createdAt: record.created_at,
+    updated: record.updated,
+
+    // 2. Thông tin Khách hàng
+    userId: record.passenger,
+    userName: passenger ? (passenger.name || passenger.username) : 'Khách vãng lai',
+    userPhone: passenger ? passenger.phone : '---',
+    // userAvatar: user ? passengers.avatar : null,
+
+    // 3. Thông tin Điểm đón
+    stationId: record.stations,
+    stationName: station ? station.name : 'Điểm chưa xác định',
+    stationAddress: station ? station.address : '',
+
+    // 4. Thông tin Chuyến
+    tripId: record.trips,
+    tripStartTime: trip ? trip.start_time : null, 
+
+    // 5. Thông tin Xe
+    busId: record.buses,
+    busPlate: bus ? bus.license_plate : 'Chưa điều xe',
+  };
 };
 
 export const pickupRequestService = {
   
   /**
-   * 1. Lấy danh sách yêu cầu (Phân trang)
-   * [ĐỔI TÊN] getPickupRequests -> getAll
+   * 1. Lấy danh sách yêu cầu
+   * @param {number} page 
+   * @param {number} pageSize 
+   * @param {string} status - Trạng thái cần lọc (pending, accepted...). Nếu rỗng '' sẽ lấy tất cả.
    */
-  getAll: async (page = 1, pageSize = 10) => {
+  getAll: async (page = 1, pageSize = 10, status = '') => {
     if (USE_MOCK) {
-      console.log(`[MOCK API] Get Pickup Requests - Page: ${page}, Size: ${pageSize}`);
-      
-      const start = (page - 1) * pageSize;
-      const end = page * pageSize;
-      const paginatedData = localRequests.slice(start, end);
-
-      return mockDelay({
-        data: paginatedData,
-        total: localRequests.length,
-      });
+      return mockDelay({ data: [], total: 0 });
     }
 
-    // Gọi API thật: GET /pickup-requests?page=1&limit=10
-    return axiosClient.get('/pickup-requests', {
-      params: { page, limit: pageSize }
-    });
+    try {
+      // --- XỬ LÝ BỘ LỌC STATUS ---
+      // Nếu status có giá trị (vd: 'pending'), ta tạo chuỗi filter
+      // Nếu status rỗng (''), ta để filterExpr rỗng -> lấy tất cả (cho Tab Lịch sử)
+      let filterExpr = '';
+      if (status) {
+        filterExpr = `status = "${status}"`;
+      }
+
+      const result = await pb.collection('pickup_requests').getList(page, pageSize, {
+        sort: '-created_at', 
+        filter: filterExpr,   // Áp dụng bộ lọc tại đây
+        expand: 'passenger,stations,trips,buses', 
+      });
+
+      return {
+        data: result.items.map(mapToUI),
+        total: result.totalItems
+      };
+    } catch (error) {
+      console.error("[Service] Lỗi lấy danh sách yêu cầu đón:", error);
+      return { data: [], total: 0 };
+    }
   },
 
   /**
-   * 2. Cập nhật trạng thái yêu cầu
-   * [ĐỔI TÊN] updatePickupRequestStatus -> updateStatus
+   * 2. Cập nhật trạng thái (Duyệt / Từ chối / Hoàn thành)
    */
   updateStatus: async (id, newStatus) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Update Request Status ${id}:`, newStatus);
-
-      let targetRequest = null;
-      localRequests = localRequests.map((req) => {
-        if (req.id === id) {
-          targetRequest = { ...req, status: newStatus };
-          return targetRequest;
-        }
-        return req;
+    try {
+      const record = await pb.collection('pickup_requests').update(id, {
+        status: newStatus
+      });
+      
+      const expandedRecord = await pb.collection('pickup_requests').getOne(record.id, {
+        expand: 'passenger,stations,trips,buses'
       });
 
-      if (targetRequest) {
-        return mockDelay({ success: true, request: targetRequest });
-      } else {
-        return Promise.reject(new Error('Không tìm thấy yêu cầu để cập nhật'));
-      }
+      return mapToUI(expandedRecord);
+    } catch (error) {
+      console.error(`[Service] Lỗi cập nhật trạng thái ${id}:`, error);
+      throw error;
     }
+  },
 
-    // Gọi API thật: PATCH /pickup-requests/:id/status
-    // (Backend thường dùng PATCH cho việc cập nhật 1 trường nhỏ như status)
-    return axiosClient.patch(`/pickup-requests/${id}/status`, { status: newStatus });
-  }
+  /**
+   * 3. Cập nhật thông tin khác
+   */
+  update: async (id, data) => {
+    try {
+      const record = await pb.collection('pickup_requests').update(id, data);
+      
+      const expandedRecord = await pb.collection('pickup_requests').getOne(record.id, {
+        expand: 'passenger,stations,trips,buses'
+      });
+      
+      return mapToUI(expandedRecord);
+    } catch (error) {
+      throw error;
+    }
+  },
 };

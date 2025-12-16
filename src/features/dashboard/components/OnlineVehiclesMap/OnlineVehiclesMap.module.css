@@ -1,50 +1,59 @@
-/* src/features/dashboard/components/OnlineVehiclesMap/OnlineVehiclesMap.module.css */
-
-.cardTitle {
-  margin: 0 !important; /* Ghi đè margin mặc định của Antd Title */
-}
-
+/* Container chính của Card */
 .card {
   height: 100%;
+  border-radius: 8px;
+  overflow: hidden; /* Bo góc cả nội dung bên trong */
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* Thêm bóng nhẹ */
+}
+
+.cardTitle {
+  margin: 0 !important; 
+  font-weight: 600;
+  color: #1f1f1f;
 }
 
 /* Style cho slot 'body' của Antd Card */
+/* QUAN TRỌNG: Padding 0 để bản đồ tràn viền đẹp mắt */
 .cardBody {
-  height: 400px;
-  padding: 12px !important; /* Ghi đè padding mặc định của Antd */
+  height: 400px; /* Chiều cao cố định */
+  padding: 0 !important; 
+  position: relative;
 }
 
-/* Div bọc ngoài Map để tạo border-radius */
+/* Div bọc ngoài Map */
 .mapWrapper {
   width: 100%;
   height: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Style cho chính component Map */
-.map {
-  width: 100%;
-  height: 100%;
+  background-color: #f0f0f0; /* Màu nền chờ khi map đang load */
 }
 
 /* --- Tách style của Popup ra --- */
 
 .popupContainer {
-  min-width: 180px;
-  padding: 8px 5px;
-  font-family: 'sans-serif'; /* Tạm thời, sau này nên dùng biến global */
+  min-width: 200px;
+  padding: 8px 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
 }
 
 .popupTitle {
-  margin: 0 0 6px;
-  color: #d32f2f; /* Tạm thời, sau này nên dùng biến global */
-  font-weight: 600;
-  font-size: 15px;
+  margin: 0 0 8px;
+  color: #1677ff; /* Dùng màu xanh Ant Design thay vì đỏ, nhìn thân thiện hơn */
+  font-weight: 700;
+  font-size: 14px;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 4px;
 }
 
 .popupInfo {
-  font-size: 13px;
-  color: #333; /* Tạm thời, sau này nên dùng biến global */
-  line-height: 1.6;
+  font-size: 12px;
+  color: #555;
+  line-height: 1.8; /* Tăng khoảng cách dòng cho dễ đọc */
+  display: flex;
+  flex-direction: column;
+}
+
+.popupInfo strong {
+  color: #222;
+  font-weight: 600;
+  margin-right: 4px;
 }

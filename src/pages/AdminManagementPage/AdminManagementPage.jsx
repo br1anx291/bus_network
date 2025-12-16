@@ -1,13 +1,13 @@
 // src/pages/AdminManagementPage/AdminManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'; // Thêm icon reload cho chuyên nghiệp
 
-// 1. Import Bảng và Modal CỦA admin
+// 1. Import Bảng và Modal
 import AdminTable from '~/features/admins/components/AdminTable/AdminTable';
 import AdminFormModal from '~/features/admins/components/AdminFormModal/AdminFormModal';
     
-// 2. Import Service CỦA admin
+// 2. Import Service
 import { adminService } from '~/services/adminService';
 
 import styles from './AdminManagementPage.module.css';
@@ -18,24 +18,26 @@ const AdminManagementPage = () => {
   // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  // Chỉnh pageSize lên 10 cho chuẩn UX quản trị
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 7,
+    pageSize: 10, 
     total: 0,
   });
 
-  // --- 4. SỬA CÁC HÀM SERVICE ---
+  // --- 1. FETCH DATA ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // [NÂNG CẤP 1] GỌI HÀM getAll
       const result = await adminService.getAll(page, pageSize);
       
-      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
-      const list = result.data || result || [];
-      const totalCount = result.total || list.length || 0;
+      const list = result.data || [];
+      const totalCount = result.total || 0;
 
+      // Map thêm key cho Antd Table
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
+      
       setData(mappedData);
       setPagination({
         ...pagination,
@@ -43,7 +45,8 @@ const AdminManagementPage = () => {
         total: totalCount,
       });
     } catch (error) {
-      message.error('Lỗi khi tải danh sách admin!');
+      console.error(error);
+      message.error('Lỗi khi tải danh sách người dùng!');
     } finally {
       setLoading(false);
     }
@@ -57,18 +60,19 @@ const AdminManagementPage = () => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
 
+  // --- 2. XÓA USER ---
   const handleDelete = async (id) => {
     try {
-      // [NÂNG CẤP 2] GỌI HÀM delete
       await adminService.delete(id); 
-      message.success('Xóa admin thành công!'); 
+      message.success('Xóa người dùng thành công!'); 
+      // Tải lại trang hiện tại
       fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
-      message.error('Lỗi khi xóa admin!');
+      message.error('Lỗi khi xóa người dùng!');
     }
   };
 
-  // --- 5. SỬA STATE MODAL ---
+  // --- 3. MODAL STATE ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAdmin, setEditingAdmin] = useState(null); 
 
@@ -88,24 +92,37 @@ const AdminManagementPage = () => {
 
   const handleModalSuccess = () => {
     handleCloseModal();
+    // Refresh lại data sau khi thêm/sửa thành công
     fetchData(); 
   };
 
   return (
     <div className={styles.pageContainer}>
-      {/* --- HEADER CỦA TRANG --- */}
+      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý admin 
+          Quản lý Người dùng
         </Title>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={handleOpenAddModal}
-        >
-          Thêm admin mới 
-        </Button>
+        
+        <Flex gap="small">
+          {/* Nút Refresh nhanh */}
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
+          >
+            Thêm mới
+          </Button>
+        </Flex>
       </Flex>
 
       {/* --- BẢNG DỮ LIỆU --- */}

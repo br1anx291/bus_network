@@ -1,13 +1,14 @@
 // src/services/driverService.js
-import axiosClient from '~/api/axiosClient';
-import { rawDriverData } from '~/features/drivers/data/driverMockData'; // <-- 1. SỬA IMPORT
+import pb from '~/api/pocketbase'; // [MỚI] Import PocketBase
+import { rawDriverData } from '~/features/drivers/data/driverMockData';
 
 // --- CẤU HÌNH CHẾ ĐỘ ---
-const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
+// true: Dùng Mock (RAM) | false: Dùng API thật (PocketBase)
+const USE_MOCK = false; 
 const MOCK_DELAY = 500;
 
-// --- KHO DATA GIẢ LẬP ---
-let localDrivers = [...rawDriverData]; // <-- Đổi tên biến (tránh trùng lặp)
+// --- KHO DATA GIẢ LẬP (BACKUP) ---
+let localDrivers = [...rawDriverData];
 
 // Hàm Helper giả lập độ trễ
 const mockDelay = (data) => {
@@ -18,107 +19,154 @@ const mockDelay = (data) => {
   });
 };
 
+// --- [QUAN TRỌNG] HÀM MAPPING (CẦU NỐI DB <-> UI) ---
+const mapToUI = (record) => {
+  return {
+    id: record.id,
+    name: record.name,
+    email: record.email || '',
+    phone: record.phone || '',
+    
+    // Mapping: DB (snake_case) -> UI (camelCase)
+    licenseNumber: record.license_number || '', 
+    
+    // Status: active, off_duty, leave...
+    status: record.status || 'active',
+    
+    // avatar: record.avatar ? pb.files.getUrl(record, record.avatar) : null, // Lấy URL ảnh nếu có
+    updatedAt: record.created,
+  };
+};
+
 export const driverService = {
   
   /**
-   * 1. Lấy danh sách tài xế (Phân trang)
-   * [ĐỔI TÊN] getDrivers -> getAll
+   * 1. Lấy danh sách tài xế (Có phân trang & Tìm kiếm)
    */
-  getAll: async (page = 1, pageSize = 10) => {
+  getAll: async (page = 1, pageSize = 10, filters = {}) => {
+    // --- NHÁNH MOCK ---
     if (USE_MOCK) {
-      console.log(`[MOCK API] Get Drivers - Page: ${page}, Size: ${pageSize}`);
-      
+      console.log(`[MOCK API] Get Drivers - Page: ${page}`);
       const start = (page - 1) * pageSize;
-      const end = page * pageSize;
-      const paginatedData = localDrivers.slice(start, end);
-
+      const paginatedData = localDrivers.slice(start, start + pageSize);
       return mockDelay({
         data: paginatedData,
         total: localDrivers.length,
       });
     }
 
-    // Gọi API thật: GET /drivers?page=1&limit=10
-    return axiosClient.get('/drivers', {
-      params: { page, limit: pageSize }
-    });
+    // --- NHÁNH POCKETBASE ---
+    try {
+      // Logic tìm kiếm: Tìm theo Tên HOẶC Số điện thoại
+      let filterExpr = '';
+      if (filters.search) {
+        filterExpr = `name ~ "${filters.search}" || phone ~ "${filters.search}"`;
+      }
+
+      const result = await pb.collection('drivers').getList(page, pageSize, {
+        sort: '-created', // Mới nhất lên đầu
+        filter: filterExpr,
+      });
+
+      return {
+        data: result.items.map(mapToUI),
+        total: result.totalItems
+      };
+    } catch (error) {
+      console.error("[PocketBase] Lỗi lấy danh sách tài xế:", error);
+      // Trả về rỗng để UI không bị crash
+      return { data: [], total: 0 };
+    }
   },
 
   /**
-   * 2. Lấy chi tiết 1 tài xế (Bổ sung)
+   * 2. Lấy chi tiết 1 tài xế
    */
   getById: async (id) => {
     if (USE_MOCK) {
       const driver = localDrivers.find(d => d.id === id);
       return mockDelay(driver);
     }
-    return axiosClient.get(`/drivers/${id}`);
+
+    try {
+      const record = await pb.collection('drivers').getOne(id);
+      return mapToUI(record);
+    } catch (error) {
+      console.error(`[PocketBase] Lỗi lấy tài xế ${id}:`, error);
+      throw error;
+    }
   },
 
   /**
    * 3. Thêm tài xế mới
-   * [ĐỔI TÊN] createDriver -> create
    */
   create: async (data) => {
     if (USE_MOCK) {
       console.log('[MOCK API] Create Driver:', data);
-
-      const newDriver = {
-        ...data,
-        id: `d${new Date().getTime()}`,
-      };
-
+      const newDriver = { ...data, id: `d${Date.now()}` };
       localDrivers.unshift(newDriver);
-
       return mockDelay(newDriver);
     }
 
-    // Gọi API thật: POST /drivers
-    return axiosClient.post('/drivers', data);
+    try {
+      // Mapping NGƯỢC: UI -> DB
+      const dbPayload = {
+        name: data.name,
+        phone: data.phone,
+        email: data.email,
+        license_number: data.licenseNumber, // UI gửi licenseNumber -> DB lưu license_number
+        status: data.status || 'active',
+        // avatar: data.avatarFile, // Nếu sau này có upload ảnh
+      };
+
+      const record = await pb.collection('drivers').create(dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[PocketBase] Lỗi tạo tài xế:", error);
+      throw error;
+    }
   },
 
   /**
    * 4. Cập nhật tài xế
-   * [ĐỔI TÊN] updateDriver -> update
    */
   update: async (id, data) => {
     if (USE_MOCK) {
-      console.log(`[MOCK API] Update Driver ${id}:`, data);
-
-      let targetDriver = null;
-      localDrivers = localDrivers.map((d) => {
-        if (d.id === id) {
-          targetDriver = { ...d, ...data };
-          return targetDriver;
-        }
-        return d;
-      });
-
-      if (targetDriver) {
-        return mockDelay(targetDriver);
-      } else {
-        return Promise.reject(new Error('Không tìm thấy tài xế để cập nhật'));
+      const index = localDrivers.findIndex(d => d.id === id);
+      if (index > -1) {
+        localDrivers[index] = { ...localDrivers[index], ...data };
+        return mockDelay(localDrivers[index]);
       }
+      return Promise.reject(new Error('Driver not found'));
     }
 
-    // Gọi API thật: PUT /drivers/:id
-    return axiosClient.put(`/drivers/${id}`, data);
+    try {
+      // Chỉ gửi những trường có thay đổi
+      const dbPayload = {
+        ...(data.name && { name: data.name }),
+        ...(data.phone && { phone: data.phone }),
+        ...(data.email && { email: data.email }),
+        ...(data.licenseNumber && { license_number: data.licenseNumber }),
+        ...(data.status && { status: data.status }),
+      };
+
+      const record = await pb.collection('drivers').update(id, dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error(`[PocketBase] Lỗi cập nhật tài xế ${id}:`, error);
+      throw error;
+    }
   },
 
   /**
    * 5. Xóa tài xế
-   * [ĐỔI TÊN] deleteDriver -> delete
    */
   delete: async (id) => {
     if (USE_MOCK) {
-      console.log(`[MOCK API] Delete Driver ${id}`);
-
       localDrivers = localDrivers.filter(d => d.id !== id);
-
       return mockDelay({ success: true });
     }
 
-    // Gọi API thật: DELETE /drivers/:id
-    return axiosClient.delete(`/drivers/${id}`);
+    return await pb.collection('drivers').delete(id);
   }
 };

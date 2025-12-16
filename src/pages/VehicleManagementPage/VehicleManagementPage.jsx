@@ -1,14 +1,16 @@
 // src/pages/VehicleManagementPage/VehicleManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined,ReloadOutlined  } from '@ant-design/icons';
 
 // 1. Import Bảng và Modal (Features)
 import VehicleTable from '../../features/vehicles/components/VehicleTable/VehicleTable';
 import VehicleFormModal from '../../features/vehicles/components/VehicleFormModal/VehicleFormModal';
 
-// 2. Import Service (Đảm bảo đường dẫn đúng)
+// 2. Import Service
 import { vehicleService } from '../../services/vehicleService';
+import { routeService } from '../../services/routeService'; // [MỚI] Import routeService
+import { driverService } from '../../services/driverService'; // [MỚI] Import routeService
 
 import styles from './VehicleManagementPage.module.css';
 
@@ -24,19 +26,19 @@ const VehicleManagementPage = () => {
     total: 0,
   });
 
-  // --- 4. HÀM TẢI DỮ LIỆU (Đã cập nhật tên hàm Service) ---
+  // [MỚI] State lưu danh sách Tuyến cho Dropdown
+  const [routeOptions, setRouteOptions] = useState([]); 
+  const [driverOptions, setDriverOptions] = useState([]); 
+
+  // --- 4. HÀM TẢI DỮ LIỆU XE ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // GỌI HÀM MỚI: getAll thay vì getVehicles
       const result = await vehicleService.getAll(page, pageSize);
       
-      // Xử lý dữ liệu trả về (Mock trả về dạng { data: [], total: ... })
-      // Nếu sau này API trả về mảng trực tiếp, ta dùng fallback 'result'
       const vehicleList = result.data || result || [];
       const totalCount = result.total || vehicleList.length || 0;
 
-      // Map thêm key cho bảng Antd
       const mappedData = vehicleList.map((item) => ({ ...item, key: item.id }));
       
       setData(mappedData);
@@ -53,9 +55,39 @@ const VehicleManagementPage = () => {
     }
   };
 
-  // Chạy 1 lần khi mount
+  // --- [MỚI] HÀM TẢI DỮ LIỆU PHỤ TRỢ (TUYẾN) ---
+  // Giống hệt logic bên TripManagementPage
+  const fetchDependencies = async () => {
+    try {
+      // Lấy danh sách tuyến (Giả sử lấy 100 tuyến đầu tiên để hiển thị dropdown)
+      // const routeRes = await routeService.getAll(1, 100);
+      const [ driverRes, routeRes ] = await Promise.all([
+        driverService.getAll(1, 100),
+        routeService.getAll(1, 100)
+      ]);
+
+      const driverOpts = (driverRes.data || []).map(driver => ({
+        value: driver.id,
+        label: driver.name
+      }));
+
+      // Map sang định dạng { value, label } cho Select
+      const routeOpts = (routeRes.data || []).map(route => ({
+        value: route.id,
+        label: route.name
+      }));
+      setDriverOptions(driverOpts);
+      setRouteOptions(routeOpts);
+    } catch (error) {
+      console.error("Lỗi tải danh sách tuyến:", error);
+      // Không cần message lỗi để tránh làm phiền user nếu API phụ lỗi
+    }
+  };
+
+  // --- EFFECT ---
   useEffect(() => {
-    fetchData();
+    fetchData();        // Tải danh sách xe
+    fetchDependencies(); // [MỚI] Tải danh sách tuyến
   }, []); 
 
   // Xử lý khi chuyển trang trên bảng
@@ -63,15 +95,13 @@ const VehicleManagementPage = () => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
 
-  // --- 5. HÀM XÓA XE (Đã cập nhật tên hàm Service) ---
+  // --- 5. HÀM XÓA XE ---
   const handleDelete = async (id) => {
     try {
-      setLoading(true); // Bật loading cho mượt
-      // GỌI HÀM MỚI: delete thay vì deleteVehicle
+      setLoading(true);
       await vehicleService.delete(id);
-      
       message.success('Xóa xe thành công!');
-      fetchData(pagination.current, pagination.pageSize); // Tải lại data
+      fetchData(pagination.current, pagination.pageSize);
     } catch (error) {
       message.error('Lỗi khi xóa xe!');
     } finally {
@@ -79,28 +109,24 @@ const VehicleManagementPage = () => {
     }
   };
 
-  // --- 6. LOGIC QUẢN LÝ MODAL (Giữ nguyên) ---
+  // --- 6. LOGIC QUẢN LÝ MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null); // 'null' = Thêm mới
+  const [editingVehicle, setEditingVehicle] = useState(null);
 
-  // Mở modal cho "Thêm mới"
   const handleOpenAddModal = () => {
     setEditingVehicle(null);
     setIsModalOpen(true);
   };
 
-  // Mở modal cho "Chỉnh sửa"
   const handleOpenEditModal = (vehicle) => {
     setEditingVehicle(vehicle);
     setIsModalOpen(true);
   };
 
-  // Đóng modal
   const handleCloseModal = () => {
     setIsModalOpen(false);
   };
 
-  // Khi Modal báo "Thành công" -> Tải lại dữ liệu
   const handleModalSuccess = () => {
     handleCloseModal();
     fetchData(); 
@@ -113,14 +139,23 @@ const VehicleManagementPage = () => {
         <Title level={2} className={styles.pageTitle}>
           Quản lý xe
         </Title>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={handleOpenAddModal}
-        >
-          Thêm xe mới
-        </Button>
+        <Flex gap="small">
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
+          >
+            Thêm xe mới
+          </Button>
+        </Flex>
       </Flex>
 
       {/* --- BẢNG DỮ LIỆU --- */}
@@ -139,6 +174,8 @@ const VehicleManagementPage = () => {
         onClose={handleCloseModal}
         onSuccess={handleModalSuccess}
         editingVehicle={editingVehicle}
+        routeOptions={routeOptions}
+        driverOptions={driverOptions}
       />
     </div>
   );

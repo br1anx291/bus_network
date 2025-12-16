@@ -1,29 +1,39 @@
-/* src/features/dashboard/components/BusMarker/BusMarker.module.css */
-
 .markerButton {
-  /* Style cho <button> */
+  /* Style cho <button> - Reset mặc định */
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  
-  /* Thêm hiệu ứng hover để tăng tương tác */
-  transition: transform 0.2s ease-in-out;
+  outline: none; /* Bỏ viền xanh khi focus/click */
+
+  /* Căn giữa icon */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  /* Hiệu ứng */
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Hiệu ứng nảy nhẹ */
 }
 
 .markerButton:hover {
-  transform: scale(1.1);
-  z-index: 10; /* Đảm bảo nó nổi lên trên các marker khác khi hover */
+  transform: scale(1.2); /* Phóng to lên 20% */
+  z-index: 10; /* Nổi lên trên cùng */
+}
+
+.markerButton:active {
+  transform: scale(0.95); /* Nhún xuống khi click */
 }
 
 .markerImage {
   /* Style cho <img> */
-  width: 50px;
-  height: 50px;
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
+  width: 40px; /* Điều chỉnh kích thước vừa vặn hơn cho Mini Map */
+  height: 40px;
+  object-fit: contain;
   
-  /* Ngăn các hành vi mặc định của trình duyệt */
+  /* Đổ bóng giúp icon tách biệt khỏi nền bản đồ */
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
+
+  /* Ngăn kéo thả ảnh */
   user-select: none;
   -webkit-user-drag: none;
-  -moz-user-drag: none;
 }

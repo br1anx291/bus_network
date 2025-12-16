@@ -48,3 +48,9 @@
   color: #333;
   padding: 12px 16px;
 }
+
+.itemDisabled {
+  opacity: 0.5;
+  pointer-events: none; /* Ngăn không cho click */
+  filter: grayscale(100%);
+}

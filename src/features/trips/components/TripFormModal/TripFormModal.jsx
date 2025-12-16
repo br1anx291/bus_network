@@ -1,35 +1,49 @@
 // src/features/trips/components/TripFormModal/TripFormModal.jsx
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message, DatePicker, Row, Col } from 'antd'; 
+import { Modal, Form, Select, message, DatePicker, Row, Col } from 'antd'; 
 import dayjs from 'dayjs'; 
 
 // 1. Import Service
 import { tripService } from '~/services/tripService'; 
-import { STATUS_COLOR_MAP } from '../../data/tripMockData';
 
-// Lấy danh sách status từ Mock Data để đồng bộ màu sắc
-const statusOptions = Object.keys(STATUS_COLOR_MAP).map(status => ({
-  value: status,
-  label: status,
-}));
+// 2. Định nghĩa Options trạng thái (Khớp với DB và TripTable)
+const STATUS_OPTIONS = [
+  { value: 'scheduled', label: 'Lên lịch (Scheduled)' },
+  { value: 'running', label: 'Đang chạy (Running)' },
+  { value: 'completed', label: 'Hoàn thành (Completed)' },
+  { value: 'cancelled', label: 'Đã hủy (Cancelled)' },
+];
 
-const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => { 
+const TripFormModal = ({ 
+  open, 
+  onClose, 
+  onSuccess, 
+  editingTrip,
+  // [QUAN TRỌNG] Nhận 2 danh sách này từ Page cha
+  busOptions = [],
+  routeOptions = []
+}) => { 
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!editingTrip;
 
-  // 2. Đổ dữ liệu vào form
+  // 3. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
     if (open) {
       if (isEditing) {
-        // Antd DatePicker cần object dayjs, không nhận string
         form.setFieldsValue({
-          ...editingTrip,
+          // Map ID của quan hệ vào Select
+          routes: editingTrip.routeId, 
+          buses: editingTrip.busId,    
+          status: editingTrip.status,
+          // Chuyển string ISO sang object Dayjs cho DatePicker
           startTime: editingTrip.startTime ? dayjs(editingTrip.startTime) : null,
           endTime: editingTrip.endTime ? dayjs(editingTrip.endTime) : null,
         });
       } else {
+        // Form thêm mới: Reset và đặt giá trị mặc định
         form.resetFields();
+        form.setFieldsValue({ status: 'scheduled' });
       }
     }
   }, [editingTrip, form, isEditing, open]);
@@ -39,20 +53,21 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // 3. Chuẩn hóa dữ liệu trước khi gửi (Date -> String)
-      const processedValues = {
-        ...values,
-        startTime: values.startTime ? values.startTime.toISOString() : null,
-        endTime: values.endTime ? values.endTime.toISOString() : null,
+      // 4. Chuẩn hóa payload để gửi cho PocketBase
+      // PocketBase dùng snake_case (start_time) thay vì camelCase (startTime)
+      const dbPayload = {
+        routes: values.routes, // Gửi ID tuyến
+        buses: values.buses,   // Gửi ID xe
+        status: values.status,
+        start_time: values.startTime ? values.startTime.toISOString() : null,
+        end_time: values.endTime ? values.endTime.toISOString() : null,
       };
 
       if (isEditing) {
-        // [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
-        await tripService.update(editingTrip.id, processedValues);
+        await tripService.update(editingTrip.id, dbPayload);
         message.success('Cập nhật chuyến thành công!');
       } else {
-        // [NÂNG CẤP] Gọi hàm create
-        await tripService.create(processedValues);
+        await tripService.create(dbPayload);
         message.success('Thêm chuyến mới thành công!');
       }
 
@@ -61,9 +76,9 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin chuyến:', error);
-      if (error.message) {
-         message.error(error.message || 'Đã có lỗi xảy ra');
-      }
+      // Hiển thị lỗi chi tiết nếu có
+      const msg = error.data?.message || error.message || 'Đã có lỗi xảy ra';
+      message.error(`Lỗi: ${msg}`);
     } finally {
       setIsLoading(false);
     }
@@ -71,7 +86,7 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
 
   return (
     <Modal
-      title={isEditing ? 'Chỉnh sửa thông tin chuyến' : 'Thêm chuyến mới'}
+      title={isEditing ? 'Chỉnh sửa lịch chạy' : 'Tạo lịch chạy mới'}
       open={open}
       onCancel={onClose}
       onOk={handleOk}
@@ -86,57 +101,68 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
         layout="vertical"
         name="trip_form"
         style={{ marginTop: '24px' }}
-        initialValues={{ status: 'Đang chạy' }}
       >
-        {/* 1. TÊN TUYẾN */}
+        {/* 1. CHỌN TUYẾN (Select) */}
         <Form.Item
-          name="routeName"
-          label="Tên tuyến"
-          rules={[{ required: true, message: 'Vui lòng nhập tên tuyến!' }]}
+          name="routes"
+          label="Tuyến đường"
+          rules={[{ required: true, message: 'Vui lòng chọn tuyến!' }]}
         >
-          <Input placeholder="Ví dụ: Tuyến 05" />
+          <Select 
+            placeholder="Tìm và chọn tuyến..."
+            options={routeOptions}
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+          />
         </Form.Item>
 
-        {/* 2. XE VÀ TÀI XẾ */}
-        <Row gutter={16}>
-          <Col span={12}>
-            <Form.Item
-              name="vehiclePlate"
-              label="Biển số xe"
-              rules={[{ required: true, message: 'Vui lòng nhập biển số xe!' }]}
-            >
-              <Input placeholder="Ví dụ: 50H-12345" />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="driverName"
-              label="Tên tài xế"
-              rules={[{ required: true, message: 'Vui lòng nhập tên tài xế!' }]}
-            >
-              <Input placeholder="Ví dụ: Nguyễn Văn A" />
-            </Form.Item>
-          </Col>
-        </Row>
+        {/* 2. CHỌN XE (Select) */}
+        <Form.Item
+          name="buses"
+          label="Xe buýt thực hiện"
+          rules={[{ required: true, message: 'Vui lòng chọn xe!' }]}
+        >
+          <Select 
+            placeholder="Tìm và chọn xe..."
+            options={busOptions}
+            showSearch
+            filterOption={(input, option) =>
+              (option?.label ?? '').toLowerCase().includes(input.toLowerCase())
+            }
+          />
+        </Form.Item>
 
-        {/* 3. THỜI GIAN */}
+        {/* 3. THỜI GIAN (2 cột) */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="startTime"
-              label="Thời gian khởi hành"
-              rules={[{ required: true, message: 'Vui lòng chọn thời gian!' }]}
+              label="Thời gian đi"
+              rules={[{ required: true, message: 'Vui lòng chọn giờ đi!' }]}
             >
-              <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+              <DatePicker 
+                showTime={{ format: 'HH:mm' }} 
+                format="DD/MM/YYYY HH:mm" 
+                placeholder="Chọn ngày giờ"
+                style={{ width: '100%' }} 
+              />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="endTime"
-              label="Thời gian kết thúc (Dự kiến)"
-              rules={[{ required: true, message: 'Vui lòng chọn thời gian!' }]}
+              label="Thời gian đến (Dự kiến)"
+              // endTime có thể để trống hoặc bắt buộc tùy logic của bạn
+              rules={[{ required: true, message: 'Vui lòng chọn giờ đến!' }]}
             >
-              <DatePicker showTime format="DD/MM/YYYY HH:mm" style={{ width: '100%' }} />
+              <DatePicker 
+                showTime={{ format: 'HH:mm' }} 
+                format="DD/MM/YYYY HH:mm" 
+                placeholder="Chọn ngày giờ"
+                style={{ width: '100%' }} 
+              />
             </Form.Item>
           </Col>
         </Row>
@@ -148,7 +174,7 @@ const TripFormModal = ({ open, onClose, onSuccess, editingTrip }) => {
           rules={[{ required: true, message: 'Vui lòng chọn trạng thái!' }]}
         >
           <Select
-            options={statusOptions}
+            options={STATUS_OPTIONS}
             placeholder="Chọn trạng thái"
           />
         </Form.Item>

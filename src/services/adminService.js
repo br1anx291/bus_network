@@ -1,124 +1,233 @@
 // src/services/adminService.js
-import axiosClient from '~/api/axiosClient';
-import { rawAdminData } from '~/features/admins/data/adminMockData'; // <-- 1. SỬA IMPORT
+import pb from '~/api/pocketbase';
 
-// --- CẤU HÌNH CHẾ ĐỘ ---
-const USE_MOCK = true; // true = Dùng Mock, false = Dùng API thật
-const MOCK_DELAY = 500;
+// --- CẤU HÌNH ---
+const USE_MOCK = false; // Chuyển sang FALSE để chạy thật với PocketBase
 
-// --- KHO DATA GIẢ LẬP ---
-let localAdmins = [...rawAdminData]; // <-- Đổi tên biến
+// --- HÀM MAPPING (Cầu nối DB Users -> UI AdminTable & Profile) ---
+const mapToUI = (record) => {
+  // Lấy URL file Avatar nếu có
+  // LƯU Ý: 'avatar' phải là tên field File trong collection users
+  const avatarUrl = record.avatar 
+    ? pb.files.getUrl(record, record.avatar, { thumb: '100x100' }) 
+    : null;
 
-// Hàm Helper giả lập độ trễ
-const mockDelay = (data) => {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(data);
-    }, MOCK_DELAY);
-  });
+  return {
+    id: record.id,
+    
+    // 1. Thông tin cơ bản (Dùng chung)
+    name: record.name || record.username || 'Người dùng hệ thống', // Tên hiển thị
+    username: record.username,
+    email: record.email,
+    
+    // 2. Thông tin cá nhân (Profile Settings)
+    phoneNumber: record.phone_number || '', // DB: phone_number -> UI: phoneNumber
+    dob: record.birthdate || null,          // DB: birthdate -> UI: dob (ngày sinh)
+    gender: record.gender || null,
+    avatarUrl: avatarUrl,                   // URL Avatar
+    
+    // 3. Thông tin hệ thống (Admin/Role Management)
+    role: record.role || 'staff',
+    status: record.verified ? 'active' : 'pending',
+    created: record.created_at,
+  };
 };
 
 export const adminService = {
   
+  // ===============================================
+  // === CHỨC NĂNG QUẢN LÝ ADMIN (User CRUD) ===
+  // ===============================================
+
   /**
-   * 1. Lấy danh sách Admin (Phân trang)
-   * [ĐỔI TÊN] getAdmins -> getAll
+   * Lấy danh sách Users (Cho trang quản lý Admin/Users)
    */
   getAll: async (page = 1, pageSize = 10) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Get Admins - Page: ${page}, Size: ${pageSize}`);
-      
-      const start = (page - 1) * pageSize;
-      const end = page * pageSize;
-      const paginatedData = localAdmins.slice(start, end);
+    if (USE_MOCK) return { data: [], total: 0 };
 
-      return mockDelay({
-        data: paginatedData,
-        total: localAdmins.length,
+    try {
+      const result = await pb.collection('users').getList(page, pageSize, {
+        sort: '-created_at', // Mới nhất lên đầu
       });
-    }
 
-    // Gọi API thật: GET /admins?page=1&limit=10
-    return axiosClient.get('/admins', {
-      params: { page, limit: pageSize }
-    });
+      return {
+        data: result.items.map(mapToUI),
+        total: result.totalItems
+      };
+    } catch (error) {
+      console.error("[AdminService] Lỗi lấy danh sách:", error);
+      return { data: [], total: 0 };
+    }
   },
 
   /**
-   * 2. Lấy chi tiết 1 Admin
+   * Lấy thông tin chi tiết của user bất kỳ (getOne)
    */
-  getById: async (id) => {
-    if (USE_MOCK) {
-      const admin = localAdmins.find(a => a.id === id);
-      return mockDelay(admin);
+  getUserById: async (id) => {
+    try {
+      const record = await pb.collection('users').getOne(id);
+      return mapToUI(record);
+    } catch (error) {
+      throw error;
     }
-    return axiosClient.get(`/admins/${id}`);
   },
 
   /**
-   * 3. Thêm Admin mới
-   * [ĐỔI TÊN] createAdmin -> create
+   * Tạo User mới
    */
   create: async (data) => {
-    if (USE_MOCK) {
-      console.log('[MOCK API] Create Admin:', data);
-
-      const newAdmin = {
-        ...data,
-        id: `a${new Date().getTime()}`,
+    try {
+      const dbPayload = {
+        username: data.username, 
+        email: data.email,
+        emailVisibility: true,
+        phone_number: data.phoneNumber,
+        role: data.role,
+        password: data.password,
+        passwordConfirm: data.passwordConfirm || data.password, 
+        verified: false, 
       };
 
-      localAdmins.unshift(newAdmin);
-
-      return mockDelay(newAdmin);
+      const record = await pb.collection('users').create(dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[AdminService] Lỗi tạo Admin:", error);
+      throw error;
     }
-
-    // Gọi API thật: POST /admins
-    return axiosClient.post('/admins', data);
   },
 
   /**
-   * 4. Cập nhật Admin
-   * [ĐỔI TÊN] updateAdmin -> update
+   * Cập nhật User (Cho trang quản lý Admin/Users)
    */
   update: async (id, data) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Update Admin ${id}:`, data);
+    try {
+      const dbPayload = {
+        username: data.username,
+        phone_number: data.phoneNumber,
+        role: data.role,
+      };
 
-      let targetAdmin = null;
-      localAdmins = localAdmins.map((a) => {
-        if (a.id === id) {
-          targetAdmin = { ...a, ...data };
-          return targetAdmin;
-        }
-        return a;
-      });
-
-      if (targetAdmin) {
-        return mockDelay(targetAdmin);
-      } else {
-        return Promise.reject(new Error('Không tìm thấy Admin để cập nhật'));
-      }
+      const record = await pb.collection('users').update(id, dbPayload);
+      return mapToUI(record);
+    } catch (error) {
+      console.error(`[AdminService] Lỗi cập nhật Admin ${id}:`, error);
+      throw error;
     }
-
-    // Gọi API thật: PUT /admins/:id
-    return axiosClient.put(`/admins/${id}`, data);
   },
 
   /**
-   * 5. Xóa Admin
-   * [ĐỔI TÊN] deleteAdmin -> delete
+   * Xóa User
    */
   delete: async (id) => {
-    if (USE_MOCK) {
-      console.log(`[MOCK API] Delete Admin ${id}`);
-
-      localAdmins = localAdmins.filter(a => a.id !== id);
-
-      return mockDelay({ success: true });
+    try {
+      return await pb.collection('users').delete(id);
+    } catch (error) {
+      console.error("[AdminService] Lỗi xóa Admin:", error);
+      throw error;
     }
+  },
 
-    // Gọi API thật: DELETE /admins/:id
-    return axiosClient.delete(`/admins/${id}`);
-  }
+  // =========================================================
+  // === CHỨC NĂNG MỚI CHO PROFILE SETTINGS (USER ĐANG ĐN) ===
+  // =========================================================
+  
+  /**
+   * Lấy hồ sơ của người dùng đang đăng nhập
+   */
+  getProfile: async () => {
+    if (USE_MOCK) return {}; 
+
+    const userId = pb.authStore.model?.id;
+    if (!userId) throw new Error("User not logged in");
+    
+    try {
+// $autoCancel: false để tránh bị hủy request khi component unmount
+      const record = await pb.collection('users').getOne(userId, { $autoCancel: false, 'v': new Date().getTime() });
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[AdminService] Lỗi lấy Profile:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Cập nhật các trường hồ sơ cá nhân (Tên, DOB, Giới tính, SĐT)
+   * @param {object} data - Dữ liệu đã được chuẩn hóa từ UI
+   */
+  updateProfile: async (data) => {
+    if (USE_MOCK) return data; 
+    
+    const userId = pb.authStore.model?.id;
+    if (!userId) throw new Error("User not logged in");
+    
+    console.log("--> [Service] Nhận data từ UI:", data);
+
+    // Mapping ngược từ tên UI sang tên DB
+    const dbPayload = {
+      gender: data.gender,
+      phone_number: data.phoneNumber,
+      birthdate: data.dob,
+    };
+    console.log("--> [Service] Payload gửi DB:", dbPayload);
+    
+    try {
+      const record = await pb.collection('users').update(userId, dbPayload);
+      pb.authStore.save(pb.authStore.token, record);
+      console.log("--> [Service] Update thành công, AuthStore updated.");
+
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[AdminService] Lỗi cập nhật Profile:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Upload và cập nhật Avatar
+   * @param {File} file - Object File từ Upload Component
+   */
+  updateAvatar: async (file) => {
+    if (USE_MOCK) return {}; 
+    
+    const userId = pb.authStore.model?.id;
+    if (!userId) throw new Error("User not logged in");
+    
+    const formData = new FormData();
+    formData.append('avatar', file); 
+    
+    try {
+      const record = await pb.collection('users').update(userId, formData);
+      pb.authStore.save(pb.authStore.token, record);
+      return mapToUI(record);
+    } catch (error) {
+      console.error("[AdminService] Lỗi upload Avatar:", error);
+      throw error;
+    }
+  },
+  changePassword: async (data) => {
+    // 1. Kiểm tra đăng nhập
+    const userId = pb.authStore.model?.id;
+    if (!userId) throw new Error("User not logged in");
+
+    // 2. Chuẩn bị Payload đúng chuẩn PocketBase
+    // PocketBase yêu cầu chính xác 3 key này:
+    const dbPayload = {
+      oldPassword: data.oldPassword,
+      password: data.newPassword,
+      passwordConfirm: data.confirmPassword,
+    };
+
+    try {
+      // 3. Gọi API update
+      const record = await pb.collection('users').update(userId, dbPayload);
+      
+      // Cập nhật lại AuthStore (để đảm bảo token đồng bộ nếu cần)
+      pb.authStore.save(pb.authStore.token, record);
+      
+      return true;
+    } catch (error) {
+      console.error("[AdminService] Lỗi đổi mật khẩu:", error);
+      throw error;
+    }
+  },
 };

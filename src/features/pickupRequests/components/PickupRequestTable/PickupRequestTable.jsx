@@ -1,79 +1,201 @@
-// src/features/pickupRequests/components/PickupRequestTable/PickupRequestTable.jsx
 import React, { useMemo } from 'react';
-import { Table, Tag, Space, Button } from 'antd';
-import { CheckOutlined, CloseOutlined } from '@ant-design/icons';
-import { STATUS_COLOR_MAP } from '../../data/pickupRequestMockData'; 
+import { Table, Tag, Space, Button, Popconfirm, Avatar, Tooltip } from 'antd';
+import { CheckOutlined, CloseOutlined, UserOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs'; 
+
 import styles from './PickupRequestTable.module.css';
+
+// --- 1. ĐỊNH NGHĨA TRẠNG THÁI (MAPPING) ---
+const STATUS_MAP = {
+  'pending':   { text: 'CHỜ DUYỆT', color: 'orange' },
+  'accepted':  { text: 'ĐÃ DUYỆT',  color: 'green' },
+  'rejected':  { text: 'TỪ CHỐI',   color: 'red' },
+  'completed': { text: 'HOÀN THÀNH', color: 'blue' },
+};
 
 const PickupRequestTable = ({ 
   data, 
   loading, 
   pagination, 
-  onTableChange,
-  // --- 1. NHẬN PROPS MỚI ---
+  onTableChange, 
   onApprove, 
-  onDeny 
+  onDeny ,
+  onCancel
 }) => {
 
   const columns = useMemo(
     () => [
-      // (Các cột khác giữ nguyên)
-      { title: 'HÀNH KHÁCH', dataIndex: 'userName', key: 'userName' },
-      { title: 'TRẠM ĐÓN', dataIndex: 'stationName', key: 'stationName' },
-      { title: 'CHUYẾN XE', dataIndex: 'tripName', key: 'tripName' },
-      { title: 'THỜI GIAN YÊU CẦU', dataIndex: 'requestTime', key: 'requestTime' },
+      // --- CỘT 1: THÔNG TIN KHÁCH HÀNG ---
+      { 
+        title: 'HÀNH KHÁCH', 
+        key: 'userInfo',
+        width: 250,
+        render: (_, record) => (
+          <Space>
+            <Avatar src={record.userAvatar} icon={<UserOutlined />} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: 600 }}>{record.userName}</span>
+              <span style={{ fontSize: '12px', color: '#888' }}>{record.userPhone}</span>
+            </div>
+          </Space>
+        )
+      },
+
+      // --- CỘT 2: ĐIỂM ĐÓN ---
+      { 
+        title: 'ĐIỂM ĐÓN', 
+        dataIndex: 'stationName', 
+        key: 'stationName',
+        render: (text, record) => (
+          <Tooltip title={record.stationAddress}>
+            <span>{text}</span>
+          </Tooltip>
+        )
+      },
+
+      // --- CỘT 3: CHUYẾN & GIỜ CHẠY ---
+      { 
+        title: 'CHUYẾN (GIỜ ĐI)', 
+        key: 'tripInfo',
+        width: 200,
+        render: (_, record) => {
+          if (!record.tripStartTime) return <span style={{color: '#999'}}>Chưa xác định</span>;
+          return (
+            <Space>
+              <ClockCircleOutlined style={{ color: '#1890ff' }} />
+              {dayjs(record.tripStartTime).format('HH:mm DD/MM/YYYY')}
+            </Space>
+          );
+        }
+      },
+
+      // --- CỘT 4: XE ĐÓN ---
+      {
+        title: 'XE ĐÓN',
+        dataIndex: 'busPlate',
+        key: 'busPlate',
+        render: (text) => text ? <Tag color="geekblue">{text}</Tag> : <span style={{color: '#ccc'}}>-</span>
+      },
+
+      // --- CỘT 5: THỜI GIAN GỬI ---
+      { 
+        title: 'GỬI LÚC', 
+        dataIndex: 'createdAt', 
+        key: 'createdAt',
+        width: 150,
+        render: (date) => <span style={{ fontSize: '13px', color: '#666' }}>{dayjs(date).format('HH:mm DD/MM')}</span>,
+        sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+      },
+
+      // --- CỘT 6: TRẠNG THÁI ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
         key: 'status',
-        render: (status) => (
-          <Tag color={STATUS_COLOR_MAP[status] || 'default'}>
-            {status.toUpperCase()}
-          </Tag>
-        ),
+        align: 'center',
+        width: 120,
+        render: (status) => {
+          const config = STATUS_MAP[status] || { text: status, color: 'default' };
+          return <Tag color={config.color}>{config.text}</Tag>;
+        },
       },
+
+      // --- CỘT 7: XỬ LÝ (LOGIC MỚI) ---
       {
-        title: 'HÀNH ĐỘNG',
+        title: 'XỬ LÝ',
         key: 'action',
-        render: (_, record) => (
-          <Space size="middle">
-            {record.status === 'Đang chờ' && (
-              <>
-                {/* --- 2. GẮN onClick VÀO NÚT --- */}
-                <Button 
-                  type="primary" 
-                  icon={<CheckOutlined />} 
-                  onClick={() => onApprove(record.id)} // <-- GẮN VÀO ĐÂY
-                >
-                  Duyệt
-                </Button>
-                <Button 
-                  type="primary" 
-                  danger 
-                  icon={<CloseOutlined />}
-                  onClick={() => onDeny(record.id)} // <-- GẮN VÀO ĐÂY
-                >
-                  Hủy
-                </Button>
-              </>
-            )}
-          </Space>
-        ),
+        align: 'center',
+        width: 140, // Tăng width một chút để nút không bị chật
+        render: (_, record) => {
+          
+          // TRƯỜNG HỢP 1: PENDING - Cần Admin duyệt hoặc từ chối
+          if (record.status === 'pending') {
+            return (
+              <Space size="small">
+                <Tooltip title="Duyệt yêu cầu">
+                  <Button 
+                    type="primary" 
+                    shape="circle"
+                    icon={<CheckOutlined />} 
+                    size="small"
+                    style={{ backgroundColor: '#52c41a', borderColor: '#52c41a' }}
+                    onClick={() => onApprove(record.id)} 
+                  />
+                </Tooltip>
+                
+                <Tooltip title="Từ chối">
+                  <Popconfirm
+                    title="Từ chối yêu cầu này?"
+                    description="Hành động này sẽ hủy yêu cầu đón."
+                    onConfirm={() => onDeny(record.id)}
+                    okText="Từ chối"
+                    cancelText="Hủy"
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button 
+                      type="primary" 
+                      danger 
+                      shape="circle"
+                      icon={<CloseOutlined />}
+                      size="small" 
+                    />
+                  </Popconfirm>
+                </Tooltip>
+              </Space>
+            );
+          }
+
+// TRƯỜNG HỢP 2: ACCEPTED - THÊM NÚT HỦY TẠI ĐÂY
+          if (record.status === 'accepted') {
+            return (
+              <Space direction="vertical" style={{ width: '100%', alignItems: 'center' }}>
+                <span style={{ fontSize: '11px', color: '#faad14', fontStyle: 'italic' }}>
+                  Đang chờ xe
+                </span>
+                
+                {/* Chỉ hiện nút Hủy nếu có truyền hàm onCancel */}
+                {onCancel && (
+                  <Tooltip title="Khách báo hủy chuyến này">
+                    <Popconfirm
+                      title="Hủy chuyến đã duyệt?"
+                      description="Hành động này sẽ hủy chuyến đi đang chờ."
+                      onConfirm={() => onCancel(record.id)} // Gọi hàm onCancel
+                      okText="Hủy chuyến"
+                      cancelText="Không"
+                      okButtonProps={{ danger: true }}
+                    >
+                      <Button 
+                        size="small" 
+                        danger 
+                        type="dashed" // Dùng dashed để bớt nổi bật hơn nút chính
+                        style={{ fontSize: '12px' }}
+                      >
+                        Hủy
+                      </Button>
+                    </Popconfirm>
+                  </Tooltip>
+                )}
+              </Space>
+            );
+          }
+
+          // TRƯỜNG HỢP 3: REJECTED / COMPLETED - Quy trình đã kết thúc
+          return <span style={{ color: '#d9d9d9' }}>-</span>;
+        },
       },
     ],
-    // --- 3. THÊM PROPS VÀO DEPENDENCY ARRAY ---
-    [STATUS_COLOR_MAP, onApprove, onDeny] 
+    [onApprove, onDeny, onCancel]
   );
 
-  // (return Table giữ nguyên)
   return (
     <Table
       columns={columns}
       dataSource={data}
       loading={loading}
+      rowKey="id"
       pagination={{
         ...pagination,
-        showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} trên ${total} kết quả`,
+        showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} trên ${total}`,
       }}
       onChange={onTableChange}
       className={styles.pickupRequestTable}

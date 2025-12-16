@@ -1,7 +1,7 @@
 // src/pages/StationManagementPage/StationManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined } from '@ant-design/icons';
+import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
 // 1. Import Bảng và Modal CỦA trạm
 import StationTable from '~/features/stations/components/StationTable/StationTable';
@@ -98,14 +98,24 @@ const StationManagementPage = () => {
         <Title level={2} className={styles.pageTitle}>
           Quản lý trạm 
         </Title>
-        <Button 
-          type="primary" 
-          icon={<PlusOutlined />} 
-          size="large"
-          onClick={handleOpenAddModal}
-        >
-          Thêm trạm mới 
-        </Button>
+
+        <Flex gap="small">
+          <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => fetchData()} 
+            loading={loading}
+          >
+            Làm mới
+          </Button>
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />} 
+            size="large"
+            onClick={handleOpenAddModal}
+          >
+            Thêm trạm mới 
+          </Button>
+        </Flex>
       </Flex>
 
       {/* --- BẢNG --- */}
