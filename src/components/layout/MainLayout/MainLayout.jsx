@@ -1,12 +1,11 @@
-// src/components/layout/MainLayout/MainLayout.jsx
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
   Layout, Menu, Input, Flex, Avatar, Dropdown, Badge, Popover, List, Typography, 
-  AutoComplete, Tooltip, Empty // [UPDATE] 1. Thêm Tooltip
+  AutoComplete, Tooltip, Empty, 
 } from 'antd';
 import {
   WarningOutlined, BarChartOutlined, TeamOutlined, SettingOutlined, LogoutOutlined,
-  SearchOutlined, BellOutlined, UserOutlined, LineChartOutlined, EnvironmentOutlined,
+  BellOutlined, UserOutlined, LineChartOutlined, EnvironmentOutlined,
   ControlOutlined, InfoCircleOutlined,
   CarOutlined, NodeIndexOutlined, HomeOutlined, CheckCircleOutlined
 } from '@ant-design/icons';
@@ -16,25 +15,19 @@ import { authService } from '~/services/authService';
 import dayjs from 'dayjs';
 import 'dayjs/locale/vi';
 import relativeTime from 'dayjs/plugin/relativeTime';
-// [UPDATE] 2. Import Context
 import { useNotification } from '~/contexts/NotificationContext';
-
+import { vehicleService } from '~/services/vehicleService'; 
+import { routeService } from '~/services/routeService';     
+import { stationService } from '~/services/stationService'; 
+import debounce from 'lodash/debounce';
 import logoImg from '~/assets/bus-logo.png';
 
-// 3. IMPORT DATA ĐỂ TÌM KIẾM
-import { rawVehicleData } from '~/features/vehicles/data/vehicleMockData';
-import { rawRouteData } from '~/features/routes/data/routeMockData';
-import { rawStationData } from '~/features/stations/data/stationMockData';
-
-// Cấu hình dayjs
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
 
 const { Header, Content, Sider } = Layout;
 const { Text } = Typography;
 
-
-// --- MENU CHÍNH (Giữ nguyên) ---
 const mainMenuItems = [
   { key: '/', icon: <BarChartOutlined />, label: 'Tổng Quan' },
   { key: '/ban-do', icon: <EnvironmentOutlined />, label: 'Bản Đồ' },
@@ -68,72 +61,93 @@ const otherMenuItems = [
 const MainLayout = () => {
   const navigate = useNavigate();
   const location = useLocation(); 
-
-  // [UPDATE] 3. Sử dụng Context thay vì State cục bộ
   const { settings, unreadCount, notifications, markAsRead } = useNotification();
-  
-  // State mở/đóng popover
   const [openNotif, setOpenNotif] = useState(false);
-  
-  // 4. STATE CHO TÌM KIẾM
   const [searchOptions, setSearchOptions] = useState([]);
+  const [searching, setSearching] = useState(false);
 
-  // --- 5. XỬ LÝ DỮ LIỆU TÌM KIẾM (GỘP 3 NGUỒN) ---
-  const searchDataSource = useMemo(() => {
-    const vehicles = rawVehicleData.map(v => ({
-      value: v.plate, 
-      label: ( 
-        <Flex justify="space-between">
-          <span><CarOutlined style={{ marginRight: 8, color: '#1890ff' }} /> {v.plate}</span>
-          <Text type="secondary" style={{ fontSize: 12 }}>Xe {v.capacity} chỗ</Text>
-        </Flex>
-      ),
-      type: 'vehicle',
-      link: '/van-hanh/quan-ly-xe', 
-    }));
-
-    const routes = rawRouteData.map(r => ({
-      value: r.name,
-      label: (
-        <Flex justify="space-between">
-          <span><NodeIndexOutlined style={{ marginRight: 8, color: '#52c41a' }} /> {r.name}</span>
-          <Text type="secondary" style={{ fontSize: 12 }}>{r.startPoint} - {r.endPoint}</Text>
-        </Flex>
-      ),
-      type: 'route',
-      link: '/van-hanh/quan-ly-tuyen',
-    }));
-
-    const stations = rawStationData.map(s => ({
-      value: s.name,
-      label: (
-        <Flex justify="space-between">
-          <span><HomeOutlined style={{ marginRight: 8, color: '#faad14' }} /> {s.name}</span>
-          <Text type="secondary" style={{ fontSize: 12 }}>{s.address}</Text>
-        </Flex>
-      ),
-      type: 'station',
-      link: '/van-hanh/quan-ly-tram',
-    }));
-
-    return [...vehicles, ...routes, ...stations];
-  }, []);
-
-  // --- 6. HÀM TÌM KIẾM (AUTOCOMPLETE) ---
-  const handleSearch = (searchText) => {
+  const fetchSearchResults = async (searchText) => {
     if (!searchText) {
       setSearchOptions([]);
       return;
     }
-    const filtered = searchDataSource.filter(item => 
-      item.value.toLowerCase().includes(searchText.toLowerCase())
-    );
-    setSearchOptions(filtered.slice(0, 5));
+
+    setSearching(true);
+    try {
+      console.log("🔍 Đang tìm kiếm với từ khóa:", searchText);
+      const [vehiclesRes, routesRes, stationsRes] = await Promise.all([
+        vehicleService.getAll(1, 3, { search: searchText }).catch(() => ({ data: [] })),
+        routeService.getAll(1, 3, { search: searchText }).catch(() => ({ data: [] })),
+        stationService.getAll(1, 3, { filter: `name ~ "${searchText}"` }).catch(() => ({ items: [] }))
+      ]);
+
+      const vehicleOptions = (vehiclesRes.data || []).map(v => ({
+        value: v.plate,
+        key: `v-${v.id}`,
+        label: ( 
+          <Flex justify="space-between">
+            <span><CarOutlined style={{ marginRight: 8, color: '#1890ff' }} /> {v.plate}</span>
+            <Text type="secondary" style={{ fontSize: 12 }}>{v.capacity} chỗ</Text>
+          </Flex>
+        ),
+        link: `/van-hanh/quan-ly-xe?search=${v.plate}`,
+      }));
+
+      const routeOptions = (routesRes.data || []).map(r => ({
+        value: r.name,
+        key: `r-${r.id}`,
+        label: (
+          <Flex justify="space-between">
+            <span><NodeIndexOutlined style={{ marginRight: 8, color: '#52c41a' }} /> {r.name}</span>
+            <Text type="secondary" style={{ fontSize: 12 }}>Mã số {r.code || ''}</Text>
+          </Flex>
+        ),
+        link: `/van-hanh/quan-ly-tuyen`,
+      }));
+
+      const stationOptions = (stationsRes.data || []).map(s => ({
+        value: s.name,
+        key: `s-${s.id}`,
+        label: (
+          <Flex justify="space-between">
+            <span><HomeOutlined style={{ marginRight: 8, color: '#faad14' }} /> {s.name}</span>
+            <Text type="secondary" style={{ fontSize: 12, maxWidth: 150 }} ellipsis>{s.address}</Text>
+          </Flex>
+        ),
+        link: `/van-hanh/quan-ly-tram`,
+      }));
+
+      const options = [
+        ...vehicleOptions,
+        ...routeOptions,
+        ...stationOptions
+      ];
+
+      setSearchOptions(options);
+
+    } catch (error) {
+      console.error("Lỗi tìm kiếm:", error);
+    } finally {
+      setSearching(false);
+    }
+  };
+
+
+  const debouncedSearch = useCallback(
+    debounce((nextValue) => fetchSearchResults(nextValue), 500),
+    [] 
+  );
+
+  const handleSearch = (value) => {
+    debouncedSearch(value);
   };
 
   const handleSelect = (value, option) => {
-    navigate(option.link);
+    if (option.link) {
+      navigate(option.link);
+    }
   };
+
 
   const selectedKeys = [location.pathname];
   const openKeys = [`/${location.pathname.split('/')[1]}`];
@@ -162,24 +176,20 @@ const MainLayout = () => {
       navigate('/cai-dat', { state: { activeTab: 'security' } });
     }
   };
+  
   const handleItemClick = (item) => {
     if (!item.is_read) {
-      markAsRead(item.id); // Gọi API đánh dấu đã đọc
+      markAsRead(item.id); 
     }
-    // Có thể navigate tới đâu đó tùy nội dung tin nhắn
-    // navigate('/su-co'); 
   };
 
   const handleNotifOpenChange = (newOpen) => {
     setOpenNotif(newOpen);
-    // Nếu muốn khi mở ra thì reset count, bạn có thể gọi hàm markAsRead từ Context ở đây
   };
 
-  // [UPDATE] Logic kiểm tra xem người dùng có bật thông báo không
-  // Mặc định là true nếu settings chưa tải xong
   const isNotificationEnabled = settings?.app_notification ?? true;
 
-const notificationContent = (
+  const notificationContent = (
     <div style={{ width: 320, maxHeight: 400, overflowY: 'auto' }}>
       {notifications && notifications.length > 0 ? (
         <List
@@ -191,29 +201,18 @@ const notificationContent = (
                 style={{ 
                     cursor: 'pointer', 
                     padding: '10px',
-                    // Nếu chưa đọc thì nền hơi xanh nhạt, đã đọc thì trắng
                     background: item.is_read ? 'transparent' : '#e6f7ff',
                     transition: 'background 0.3s'
                 }}
             >
               <List.Item.Meta
                 avatar={
-                    // Nếu chưa đọc hiện icon ! xanh, đã đọc hiện icon check xám
                     !item.is_read 
                     ? <InfoCircleOutlined style={{ color: '#1890ff', fontSize: 20 }} />
                     : <CheckCircleOutlined style={{ color: '#ccc', fontSize: 20 }} />
                 }
-                title={
-                    <Text strong={!item.is_read} style={{ fontSize: 13 }}>
-                        {item.message}
-                    </Text>
-                }
-                description={
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                        {/* Dùng dayjs để hiện "5 phút trước" từ field 'time' hoặc 'created' */}
-                        {dayjs(item.time || item.created).fromNow()}
-                    </Text>
-                }
+                title={<Text strong={!item.is_read} style={{ fontSize: 13 }}>{item.message}</Text>}
+                description={<Text type="secondary" style={{ fontSize: 11 }}>{dayjs(item.time || item.created).fromNow()}</Text>}
               />
             </List.Item>
           )}
@@ -233,42 +232,18 @@ const notificationContent = (
       <Sider width={240} className={styles.sidebar}>
         <div>
           <Link to="/" style={{ textDecoration: 'none', display: 'block' }}>
-            <div 
-              className={styles.logo} 
-              style={{ 
-                cursor: 'pointer', display: 'flex', alignItems: 'center',
-                justifyContent: 'center', gap: '10px'
-              }}
-            >
-              <img src={logoImg} alt="BusNetwork Logo" style={{ height: '28px', width: 'auto' }} 
-              />
-              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#000000ff' }}>
-                BusNetwork
-              </span>
+            <div className={styles.logo} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+              <img src={logoImg} alt="BusNetwork Logo" style={{ height: '28px', width: 'auto' }} />
+              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#000000ff' }}>BusNetwork</span>
             </div>
           </Link>
 
           <div className={styles.menuTitle}>DANH MỤC</div>
-          <Menu
-            onClick={handleMenuClick}
-            selectedKeys={selectedKeys}
-            defaultOpenKeys={openKeys}
-            mode="inline"
-            theme="light"
-            items={mainMenuItems} 
-            className={styles.sidebarMenu}
-          />
+          <Menu onClick={handleMenuClick} selectedKeys={selectedKeys} defaultOpenKeys={openKeys} mode="inline" theme="light" items={mainMenuItems} className={styles.sidebarMenu} />
         </div>
         <div>
           <div className={styles.menuTitle}>KHÁC</div>
-          <Menu
-            onClick={handleMenuClick}
-            selectedKeys={selectedKeys}
-            mode="inline"
-            theme="light"
-            items={otherMenuItems}
-            className={styles.sidebarMenu}
-          />
+          <Menu onClick={handleMenuClick} selectedKeys={selectedKeys} mode="inline" theme="light" items={otherMenuItems} className={styles.sidebarMenu} />
         </div>
       </Sider>
 
@@ -276,7 +251,6 @@ const notificationContent = (
         <Header className={styles.header}>
           <Flex justify="space-between" align="center" className={styles.headerFlex}>
             
-            {/* --- THANH TÌM KIẾM THÔNG MINH --- */}
             <AutoComplete
               popupClassName="search-popup"
               style={{ width: 400 }}
@@ -287,16 +261,13 @@ const notificationContent = (
               <Input.Search 
                 placeholder="Tìm biển số xe, tuyến, trạm..." 
                 className={styles.headerSearch}
-                enterButton
                 allowClear
+                loading={searching}
               />
             </AutoComplete>
 
             <Flex align="center" gap="middle">
-              
-              {/* [UPDATE] 4. Khu vực Chuông Thông Báo */}
               {isNotificationEnabled ? (
-                // TRƯỜNG HỢP BẬT THÔNG BÁO: Hiển thị Badge + Popover
                 <Popover
                     content={notificationContent}
                     title="Thông báo mới"
@@ -307,13 +278,12 @@ const notificationContent = (
                     overlayStyle={{ zIndex: 2000 }}
                 >
                     <div style={{ cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                    <Badge count={unreadCount}> {/* Dùng số liệu từ Context */}
+                    <Badge count={unreadCount}>
                         <BellOutlined className={styles.notificationIcon} />
                     </Badge>
                     </div>
                 </Popover>
               ) : (
-                // TRƯỜNG HỢP TẮT THÔNG BÁO: Hiển thị icon mờ + Tooltip
                 <Tooltip title="Bạn đã tắt thông báo trên Web trong phần Cài đặt">
                     <div style={{ cursor: 'not-allowed', display: 'flex', alignItems: 'center', opacity: 0.4 }}>
                     <Badge dot={false}> 
@@ -325,10 +295,7 @@ const notificationContent = (
 
               <span className={styles.userName}>Chào, Tuyết My</span>
               
-              <Dropdown
-                menu={{ items: userMenuItems, onClick: handleUserMenuClick }} 
-                trigger={['click']}
-              >
+              <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} trigger={['click']}>
                 <Avatar className={styles.userAvatar} icon={<UserOutlined />} style={{cursor: 'pointer'}}/>
               </Dropdown>
             </Flex>
