@@ -7,19 +7,16 @@ import { authService } from '../../../../services/authService';
 const { Title, Text } = Typography;
 
 const RegisterForm = () => {
-  // --- STATE ĐỂ XỬ LÝ LOADING, LỖI, VÀ THÀNH CÔNG ---
-  const [isLoading, setIsLoading] = useState(false); // <-- MỚI
-  const [error, setError] = useState(null); // <-- MỚI
-  const [successMessage, setSuccessMessage] = useState(null); // <-- MỚI
-  const navigate = useNavigate(); // <-- MỚI
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState(null);
+  const navigate = useNavigate(); 
 
-  // --- HÀM "BÓP CÒ" ---
   const onFinish = async (values) => {
     setError(null);
     setSuccessMessage(null);
     setIsLoading(true);
 
-    // Lấy data từ form
     const registerData = {
       firstName: values.firstName,
       lastName: values.lastName,
@@ -28,22 +25,18 @@ const RegisterForm = () => {
     };
 
     try {
-      // Gọi "nòng súng"
       const response = await authService.register(registerData);
 
-      // THÀNH CÔNG!
       setSuccessMessage(response.message || 'Đăng ký thành công!');
       
-      // Chờ 2 giây rồi "đá" về trang login
       setTimeout(() => {
         navigate('/login');
       }, 2000);
 
     } catch (err) {
-      // THẤT BẠI! (mock ném ra lỗi 'Email đã tồn tại')
       setError(err.message || 'Đã có lỗi xảy ra');
     } finally {
-      setIsLoading(false); // Luôn tắt loading
+      setIsLoading(false);
     }
   };
 
@@ -56,7 +49,6 @@ const RegisterForm = () => {
         Bạn đã có tài khoản? <Link to="/login">Đăng nhập</Link>
       </Text>
 
-      {/* --- HIỂN THỊ LỖI (NẾU CÓ) --- */}
       {error && (
         <Alert
           message={error}
@@ -68,7 +60,6 @@ const RegisterForm = () => {
         />
       )}
 
-      {/* --- HIỂN THỊ THÀNH CÔNG (NẾU CÓ) --- */}
       {successMessage && (
         <Alert
           message={successMessage}
@@ -84,10 +75,8 @@ const RegisterForm = () => {
         onFinish={onFinish}
         layout="vertical"
         requiredMark={false}
-        // <-- MỚI: Vô hiệu hóa form khi đang loading hoặc đã thành công
         disabled={isLoading || successMessage}
       >
-        {/* Hàng 1: Họ và Tên */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -109,7 +98,6 @@ const RegisterForm = () => {
           </Col>
         </Row>
 
-        {/* Hàng 2: Email */}
         <Form.Item
           label="Địa chỉ Email"
           name="email"
@@ -125,7 +113,6 @@ const RegisterForm = () => {
           />
         </Form.Item>
 
-        {/* Hàng 3: Mật khẩu */}
         <Form.Item
           label="Nhập mật khẩu"
           name="password"
@@ -139,7 +126,6 @@ const RegisterForm = () => {
           />
         </Form.Item>
 
-        {/* Hàng 4: Xác nhận Mật khẩu */}
         <Form.Item
           label="Xác nhận mật khẩu"
           name="confirmPassword"
@@ -164,14 +150,13 @@ const RegisterForm = () => {
           />
         </Form.Item>
 
-        {/* Hàng 5: Nút Đăng ký */}
         <Form.Item style={{ marginTop: '16px' }}>
           <Button 
             type="primary" 
             htmlType="submit" 
             className={styles.registerButton} 
             size="large"
-            loading={isLoading} // <-- MỚI: Thêm trạng thái loading
+            loading={isLoading}
           >
             Đăng ký
           </Button>

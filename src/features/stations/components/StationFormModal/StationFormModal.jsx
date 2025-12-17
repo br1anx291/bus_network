@@ -1,8 +1,5 @@
-// src/features/stations/components/StationFormModal/StationFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message, InputNumber, Row, Col } from 'antd';
-
-// 1. Import Service
 import { stationService } from '~/services/stationService'; 
 
 const statusOptions = [
@@ -16,13 +13,12 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!editingStation;
 
-  // 2. Đổ dữ liệu vào form
   useEffect(() => {
     if (open) {
       if (isEditing) {
         form.setFieldsValue({
           name: editingStation.name,
-          address: editingStation.address, // Thêm address
+          address: editingStation.address,
           lat: editingStation.lat,
           lng: editingStation.lng,
           status: editingStation.status,
@@ -36,28 +32,25 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
-      console.log("🚀 Dữ liệu Trạm gửi đi:", values); // Log để debug nếu cần
+      console.log("🚀 Dữ liệu Trạm gửi đi:", values); 
       setIsLoading(true);
 
       if (isEditing) {
-        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
         await stationService.update(editingStation.id, values);
         message.success('Cập nhật trạm thành công!');
       } else {
-        // 4. [NÂNG CẤP] Gọi hàm create
         await stationService.create(values);
         message.success('Thêm trạm mới thành công!');
       }
 
-      onSuccess(); // Tải lại bảng
-      onClose();   // Đóng modal
+      onSuccess();
+      onClose();  
 
 } catch (error) {
       if (error.errorFields) {
         console.log("Validate failed:", error);
       } else {
         console.error('Lỗi API:', error);
-        // Hiển thị chi tiết lỗi từ PocketBase
         const errorData = error.response?.data || {};
         const firstKey = Object.keys(errorData)[0];
         const msg = firstKey 
@@ -89,7 +82,6 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
         style={{ marginTop: '24px' }}
         initialValues={{ status: 'active' }}
       >
-        {/* 1. TÊN TRẠM */}
         <Form.Item
           name="name"
           label="Tên trạm"
@@ -98,7 +90,6 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           <Input placeholder="Ví dụ: Bến Thành" />
         </Form.Item>
 
-        {/* 2. ĐỊA CHỈ (Thêm mới) */}
         <Form.Item
           name="address"
           label="Địa chỉ"
@@ -107,7 +98,6 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           <Input placeholder="Ví dụ: Quận 1, TP.HCM" />
         </Form.Item>
 
-        {/* 3. TỌA ĐỘ (LAT/LON) */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -137,7 +127,6 @@ const StationFormModal = ({ open, onClose, onSuccess, editingStation }) => {
           </Col>
         </Row>
 
-        {/* 4. TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

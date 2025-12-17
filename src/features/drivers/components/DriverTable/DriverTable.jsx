@@ -3,8 +3,6 @@ import { Table, Tag, Space, Button, Popconfirm, Avatar, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, UserOutlined, PhoneOutlined, IdcardOutlined, MailOutlined } from '@ant-design/icons';
 import styles from './DriverTable.module.css'; 
 
-// 1. TỪ ĐIỂN TRẠNG THÁI (Anh -> Việt)
-// Giúp hiển thị tiếng Việt đẹp mắt thay vì raw data từ DB
 const STATUS_MAP = {
   'active': { text: 'ĐANG LÀM VIỆC', color: 'green' },
   'off': { text: 'NGHỈ CA', color: 'orange' }, 
@@ -23,18 +21,15 @@ const DriverTable = ({
 
   const columns = useMemo(
     () => [
-      // --- CỘT 1: HỌ TÊN & AVATAR (Gộp thông tin chung) ---
       { 
         title: 'TÀI XẾ', 
         key: 'info',
         width: 250,
         render: (_, record) => (
           <Space>
-            {/* Hiển thị Avatar (nếu có ảnh từ DB thì hiện, không thì hiện icon) */}
             <Avatar src={record.avatar} icon={<UserOutlined />} />
             <div>
               <div style={{ fontWeight: 600 }}>{record.name}</div>
-              {/* Hiển thị số bằng lái nhỏ bên dưới tên */}
               <div style={{ fontSize: 11, color: '#888' }}>
                 <IdcardOutlined style={{ marginRight: 4 }} />
                 {record.licenseNumber || 'Chưa cập nhật'}
@@ -44,7 +39,6 @@ const DriverTable = ({
         )
       },
 
-      // --- CỘT 2: SỐ ĐIỆN THOẠI ---
       { 
         title: 'LIÊN HỆ', 
         dataIndex: 'phone', 
@@ -60,7 +54,6 @@ const DriverTable = ({
         )
       },
 
-      // --- CỘT 3: EMAIL (Thay thế Cập Nhật) ---
       { 
         title: 'EMAIL', 
         dataIndex: 'email', 
@@ -76,7 +69,6 @@ const DriverTable = ({
         )
       },
 
-      // --- CỘT 4: TRẠNG THÁI (Dùng Map để dịch) ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -92,7 +84,6 @@ const DriverTable = ({
         },
       },
 
-      // --- CỘT 5: HÀNH ĐỘNG ---
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
@@ -103,7 +94,6 @@ const DriverTable = ({
               <Button 
                 type="primary" ghost
                 icon={<EditOutlined />} 
-                // style={{ color: '#1890ff' }} 
                 onClick={() => onEdit(record)} 
               />
             </Tooltip>

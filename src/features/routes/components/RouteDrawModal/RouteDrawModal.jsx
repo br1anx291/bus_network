@@ -1,4 +1,3 @@
-// src/features/routes/components/RouteDrawModal/RouteDrawModal.jsx
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Modal, Button, message, Alert } from 'antd';
 import Map, { NavigationControl } from 'react-map-gl';
@@ -19,25 +18,20 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
   const mapRef = useRef(null);
   const drawRef = useRef(null);
 
-  // Load thư viện mapbox-gl
   useEffect(() => {
     import('mapbox-gl').then(mod => {
       window.mapboxgl = mod.default;
     });
   }, []);
 
-  // --- HÀM 1: LOGIC VẼ DỮ LIỆU (Tách riêng để tái sử dụng) ---
   const renderRouteData = useCallback((mapInstance, drawInstance, routeData) => {
     if (!mapInstance || !drawInstance) return;
 
     try {
-      // BƯỚC QUAN TRỌNG NHẤT: Luôn xóa sạch dữ liệu cũ trước
       drawInstance.deleteAll();
 
-      // Nếu không có dữ liệu (Tuyến Test) -> Dừng luôn sau khi xóa
       if (!routeData?.path) return;
 
-      // Parse dữ liệu
       let coordsToDraw = [];
       const rawPath = routeData.path;
 
@@ -54,7 +48,6 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
 
       if (coordsToDraw.length === 0) return;
 
-      // Vẽ mới
       const feature = {
         type: 'Feature',
         properties: {},
@@ -66,12 +59,10 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
 
       drawInstance.add(feature);
 
-      // Chuyển mode về select
       setTimeout(() => {
         try { drawInstance.changeMode('simple_select'); } catch (e) {}
       }, 50);
 
-      // Zoom map (Fit Bounds)
       if (window.mapboxgl) {
         const bounds = coordsToDraw.reduce((bounds, coord) => {
           return bounds.extend(coord);
@@ -87,12 +78,10 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
     }
   }, []);
 
-  // --- HÀM 2: KHỞI TẠO MAP (Chạy 1 lần khi Map Load xong) ---
   const handleMapLoad = (evt) => {
     const map = evt.target;
     mapRef.current = map;
 
-    // Khởi tạo Draw Control nếu chưa có
     if (!drawRef.current) {
       const draw = new MapboxDraw({
         displayControlsDefault: false,
@@ -107,20 +96,15 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
       drawRef.current = draw;
     }
 
-    // Gọi hàm vẽ ngay khi map load xong
     renderRouteData(map, drawRef.current, editingRoute);
   };
 
-  // --- HÀM 3: THEO DÕI SỰ THAY ĐỔI CỦA TUYẾN (Fix lỗi của bạn) ---
-  // Mỗi khi editingRoute thay đổi (bấm từ Tuyến 6 sang Tuyến 2), hàm này sẽ chạy
   useEffect(() => {
     if (open && mapRef.current && drawRef.current) {
-      // Vẽ lại dữ liệu mới đè lên dữ liệu cũ
       renderRouteData(mapRef.current, drawRef.current, editingRoute);
     }
   }, [editingRoute, open, renderRouteData]); 
 
-  // --- HÀM LƯU ---
   const handleSave = () => {
     if (!drawRef.current) {
       message.error("Bản đồ chưa sẵn sàng!");

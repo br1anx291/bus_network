@@ -1,12 +1,8 @@
-// src/features/trips/components/TripFormModal/TripFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Select, message, DatePicker, Row, Col } from 'antd'; 
 import dayjs from 'dayjs'; 
-
-// 1. Import Service
 import { tripService } from '~/services/tripService'; 
 
-// 2. Định nghĩa Options trạng thái (Khớp với DB và TripTable)
 const STATUS_OPTIONS = [
   { value: 'scheduled', label: 'Lên lịch (Scheduled)' },
   { value: 'running', label: 'Đang chạy (Running)' },
@@ -19,7 +15,6 @@ const TripFormModal = ({
   onClose, 
   onSuccess, 
   editingTrip,
-  // [QUAN TRỌNG] Nhận 2 danh sách này từ Page cha
   busOptions = [],
   routeOptions = []
 }) => { 
@@ -27,21 +22,17 @@ const TripFormModal = ({
   const [isLoading, setIsLoading] = useState(false);
   const isEditing = !!editingTrip;
 
-  // 3. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
     if (open) {
       if (isEditing) {
         form.setFieldsValue({
-          // Map ID của quan hệ vào Select
           routes: editingTrip.routeId, 
           buses: editingTrip.busId,    
           status: editingTrip.status,
-          // Chuyển string ISO sang object Dayjs cho DatePicker
           startTime: editingTrip.startTime ? dayjs(editingTrip.startTime) : null,
           endTime: editingTrip.endTime ? dayjs(editingTrip.endTime) : null,
         });
       } else {
-        // Form thêm mới: Reset và đặt giá trị mặc định
         form.resetFields();
         form.setFieldsValue({ status: 'scheduled' });
       }
@@ -53,11 +44,9 @@ const TripFormModal = ({
       const values = await form.validateFields();
       setIsLoading(true);
 
-      // 4. Chuẩn hóa payload để gửi cho PocketBase
-      // PocketBase dùng snake_case (start_time) thay vì camelCase (startTime)
       const dbPayload = {
-        routes: values.routes, // Gửi ID tuyến
-        buses: values.buses,   // Gửi ID xe
+        routes: values.routes,
+        buses: values.buses, 
         status: values.status,
         start_time: values.startTime ? values.startTime.toISOString() : null,
         end_time: values.endTime ? values.endTime.toISOString() : null,
@@ -71,12 +60,11 @@ const TripFormModal = ({
         message.success('Thêm chuyến mới thành công!');
       }
 
-      onSuccess(); // Tải lại bảng
-      onClose();   // Đóng modal
+      onSuccess();
+      onClose();
 
     } catch (error) {
       console.error('Lỗi khi lưu thông tin chuyến:', error);
-      // Hiển thị lỗi chi tiết nếu có
       const msg = error.data?.message || error.message || 'Đã có lỗi xảy ra';
       message.error(`Lỗi: ${msg}`);
     } finally {
@@ -102,7 +90,6 @@ const TripFormModal = ({
         name="trip_form"
         style={{ marginTop: '24px' }}
       >
-        {/* 1. CHỌN TUYẾN (Select) */}
         <Form.Item
           name="routes"
           label="Tuyến đường"
@@ -118,7 +105,6 @@ const TripFormModal = ({
           />
         </Form.Item>
 
-        {/* 2. CHỌN XE (Select) */}
         <Form.Item
           name="buses"
           label="Xe buýt thực hiện"
@@ -134,7 +120,6 @@ const TripFormModal = ({
           />
         </Form.Item>
 
-        {/* 3. THỜI GIAN (2 cột) */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -154,7 +139,6 @@ const TripFormModal = ({
             <Form.Item
               name="endTime"
               label="Thời gian đến (Dự kiến)"
-              // endTime có thể để trống hoặc bắt buộc tùy logic của bạn
               rules={[{ required: true, message: 'Vui lòng chọn giờ đến!' }]}
             >
               <DatePicker 
@@ -167,7 +151,6 @@ const TripFormModal = ({
           </Col>
         </Row>
 
-        {/* 4. TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

@@ -1,16 +1,12 @@
-// src/features/vehicles/components/VehicleFormModal/VehicleFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, InputNumber, Select, message } from 'antd';
 import { vehicleService } from '~/services/vehicleService'; 
 
-// --- 1. ĐỊNH NGHĨA OPTIONS ---
 const statusOptions = [
   { value: 'active', label: 'Đang chạy' },
   { value: 'maintenance', label: 'Bảo trì' },
   { value: 'stopped', label: 'Không hoạt động' },
 ];
-
-// (Đã xóa typeOptions)
 
 const VehicleFormModal = ({ 
   open, 
@@ -25,14 +21,12 @@ const VehicleFormModal = ({
 
   const isEditing = !!editingVehicle;
 
-  // --- 2. LOGIC ĐIỀN DỮ LIỆU (PRE-FILL) ---
   useEffect(() => {
     if (open) {
       if (isEditing) {
         form.setFieldsValue({
           plate: editingVehicle.plate,
           model: editingVehicle.model,
-          // type: editingVehicle.type, // (Đã xóa)
           capacity: editingVehicle.capacity,
           status: editingVehicle.status,
           
@@ -49,7 +43,6 @@ const VehicleFormModal = ({
     }
   }, [editingVehicle, form, isEditing, open]);
 
-  // --- 3. LOGIC XỬ LÝ SUBMIT ---
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
@@ -59,7 +52,6 @@ const VehicleFormModal = ({
         ...values,
         routes: values.routes || null,
         driver: values.driver || null
-        // Không gửi type nữa
       };
 
       if (isEditing) {
@@ -100,7 +92,6 @@ const VehicleFormModal = ({
         name="vehicle_form"
         style={{ marginTop: '24px' }}
       >
-        {/* --- DÒNG 1: BIỂN SỐ & MẪU XE --- */}
         <div style={{ display: 'flex', gap: '16px' }}>
             <Form.Item
               name="plate"
@@ -121,7 +112,6 @@ const VehicleFormModal = ({
             </Form.Item>
         </div>
 
-        {/* --- DÒNG 2: SỨC CHỨA & TRẠNG THÁI (Đẩy trạng thái lên đây cho gọn) --- */}
         <div style={{ display: 'flex', gap: '16px' }}>
             <Form.Item
               name="capacity"
@@ -142,7 +132,6 @@ const VehicleFormModal = ({
             </Form.Item>
         </div>
 
-        {/* --- DÒNG 3: TÀI XẾ & TUYẾN --- */}
         <div style={{ display: 'flex', gap: '16px' }}>
             <Form.Item
               name="driver"

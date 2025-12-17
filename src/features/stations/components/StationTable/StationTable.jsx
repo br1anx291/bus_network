@@ -1,14 +1,12 @@
-// src/features/stations/components/StationTable/StationTable.jsx
 import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, EnvironmentOutlined } from '@ant-design/icons';
 import styles from './StationTable.module.css';
 
-// 1. TỪ ĐIỂN TRẠNG THÁI (Anh -> Việt)
 const STATUS_MAP = {
   'active': { text: 'HOẠT ĐỘNG', color: 'green' },
   'maintenance': { text: 'BẢO TRÌ', color: 'orange' },
-  'stopped': { text: 'NGỪNG HOẠT ĐỘNG', color: 'red' }, // Trạm thường dùng 'inactive' thay vì 'stopped'
+  'stopped': { text: 'NGỪNG HOẠT ĐỘNG', color: 'red' },
   'default': { text: 'KHÔNG RÕ', color: 'default' }
 };
 
@@ -23,7 +21,6 @@ const StationTable = ({
 
   const columns = useMemo(
     () => [
-      // --- CỘT 1: TÊN TRẠM ---
       { 
         title: 'TÊN TRẠM', 
         dataIndex: 'name', 
@@ -32,7 +29,6 @@ const StationTable = ({
         render: (text) => <span style={{ fontWeight: 600 }}>{text}</span>
       },
 
-      // --- CỘT 2: ĐỊA CHỈ (Mới) ---
       {
         title: 'ĐỊA CHỈ',
         dataIndex: 'address',
@@ -45,20 +41,17 @@ const StationTable = ({
         )
       },
 
-      // --- CỘT 3: TOẠ ĐỘ (Gộp Lat/Lng cho gọn) ---
       { 
         title: 'TOẠ ĐỘ (Lat - Lng)', 
         key: 'coordinates',
         width: 180,
         render: (_, record) => (
           <span style={{ fontSize: 13, color: '#666', fontFamily: 'monospace' }}>
-            {/* Làm tròn 5 số thập phân là đủ chuẩn GPS */}
             {Number(record.lat).toFixed(5)} , {Number(record.lng).toFixed(5)}
           </span>
         )
       },
 
-      // --- CỘT 4: TRẠNG THÁI ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -74,7 +67,6 @@ const StationTable = ({
         },
       },
 
-      // --- CỘT 5: HÀNH ĐỘNG ---
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
@@ -89,7 +81,6 @@ const StationTable = ({
                 />
             </Tooltip>
 
-            {/* 3. Nút Xóa */}
             <Tooltip title="Xóa trạm">
                 <Popconfirm
                   title="Bạn chắc chắn muốn xóa trạm này?"
@@ -113,7 +104,7 @@ const StationTable = ({
       columns={columns}
       dataSource={data}
       loading={loading}
-      rowKey="id" // Quan trọng
+      rowKey="id" 
       pagination={{
         ...pagination,
         showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} trên ${total} kết quả`,

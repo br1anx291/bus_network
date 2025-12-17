@@ -1,14 +1,11 @@
-// src/features/incidents/components/IncidentFormModal/IncidentFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message, Row, Col, Spin } from 'antd'; 
 
-// Import Service & API để lấy danh sách xe/tài xế
 import { incidentService } from '~/services/incidentService'; 
-import pb from '~/api/pocketbase'; // Dùng trực tiếp pb để load options cho nhanh
+import pb from '~/api/pocketbase';
 
 const { TextArea } = Input;
 
-// --- CONSTANTS CHO SELECT OPTIONS ---
 const CATEGORY_OPTIONS = [
   { value: 'technical', label: 'Kỹ thuật / Xe' },
   { value: 'personnel', label: 'Nhân sự' },
@@ -32,31 +29,26 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
   const [form] = Form.useForm();
   const [isLoading, setIsLoading] = useState(false);
   
-  // State lưu danh sách options từ DB
   const [busOptions, setBusOptions] = useState([]);
   const [driverOptions, setDriverOptions] = useState([]);
   const [isLoadingOptions, setIsLoadingOptions] = useState(false);
 
   const isEditing = !!editingIncident;
 
-  // 1. Load danh sách Xe và Tài xế khi mở Modal
   useEffect(() => {
     const fetchOptions = async () => {
       if (!open) return;
       setIsLoadingOptions(true);
       try {
-        // Gọi song song 2 API cho nhanh
         const [buses, drivers] = await Promise.all([
           pb.collection('buses').getFullList({ sort: 'license_plate' }),
-          pb.collection('drivers').getFullList({ sort: 'name' }), // Giả sử collection tài xế là 'drivers'
+          pb.collection('drivers').getFullList({ sort: 'name' }),
         ]);
 
-        // Map sang format của Select Antd
         setBusOptions(buses.map(b => ({ label: b.license_plate, value: b.id })));
         setDriverOptions(drivers.map(d => ({ label: d.name, value: d.id })));
       } catch (error) {
         console.error("Lỗi load options:", error);
-        // Không chặn luồng, chỉ báo lỗi nhẹ hoặc lờ đi nếu chưa có data
       } finally {
         setIsLoadingOptions(false);
       }
@@ -65,7 +57,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
     fetchOptions();
   }, [open]);
 
-  // 2. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
     if (open) {
       if (isEditing) {
@@ -83,13 +74,12 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
         form.setFieldsValue({
           severity: 'low',
           category: 'technical',
-          status: 'pending' // Mặc định khi tạo mới
+          status: 'pending'
         });
       }
     }
   }, [editingIncident, form, isEditing, open]);
 
-  // 3. Xử lý Submit
   const handleOk = async () => {
     try {
       const values = await form.validateFields();
@@ -103,8 +93,8 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
         message.success('Đã ghi nhận sự cố mới!');
       }
 
-      onSuccess(); // Refresh bảng
-      onClose();   // Đóng modal
+      onSuccess();
+      onClose();  
 
     } catch (error) {
       console.error('Lỗi form:', error);
@@ -132,7 +122,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
           layout="vertical"
           style={{ marginTop: '20px' }}
         >
-          {/* HÀNG 1: TIÊU ĐỀ + PHÂN LOẠI */}
           <Row gutter={16}>
             <Col span={16}>
               <Form.Item
@@ -154,7 +143,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
             </Col>
           </Row>
 
-          {/* HÀNG 2: MỨC ĐỘ + TRẠNG THÁI (Chỉ hiện khi Edit) */}
           <Row gutter={16}>
             <Col span={isEditing ? 12 : 24}>
               <Form.Item
@@ -166,7 +154,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
               </Form.Item>
             </Col>
             
-            {/* Chỉ cho sửa trạng thái khi đang Edit */}
             {isEditing && (
               <Col span={12}>
                 <Form.Item
@@ -180,7 +167,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
             )}
           </Row>
 
-          {/* HÀNG 3: LIÊN QUAN ĐẾN (Xe / Tài xế) */}
           <Row gutter={16}>
             <Col span={12}>
               <Form.Item
@@ -216,7 +202,6 @@ const IncidentFormModal = ({ open, onClose, onSuccess, editingIncident }) => {
             </Col>
           </Row>
 
-          {/* HÀNG 4: MÔ TẢ CHI TIẾT */}
           <Form.Item
             name="description"
             label="Mô tả chi tiết"

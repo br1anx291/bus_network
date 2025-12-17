@@ -1,24 +1,15 @@
-.pageContainer {
-  /* (Để trống) */
-}
-
 .pageTitle {
   margin: 0 0 24px 0 !important;
 }
 
-/* Tùy chỉnh Antd Tabs */
 .settingTabs :global(.ant-tabs-nav) {
-  /* Xóa lề dưới của thanh tab */
   margin-bottom: 0;
 }
 
 .settingTabs :global(.ant-tabs-content-holder) {
-  /* Thêm nền trắng và bo góc cho nội dung tab,
-     giống như các card trong Figma
-  */
   background: #ffffff;
   border: 1px solid #f0f0f0;
-  border-top: none; /* Bỏ viền trên vì nó dính vào thanh tab */
+  border-top: none;
   border-radius: 0 0 8px 8px;
   padding: 24px;
 }

@@ -1,31 +1,28 @@
-// src/pages/ForgotPasswordPage/ForgotPasswordPage.jsx
 import React, { useState } from 'react';
 import { Form, Input, Button, Card, Typography, message, Flex } from 'antd';
 import { MailOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import { Link, useNavigate } from 'react-router-dom'; // Dùng Link để điều hướng
+import { Link, useNavigate } from 'react-router-dom'; 
 import styles from './ForgotPasswordPage.module.css';
 
 const { Title, Text } = Typography;
 
 const ForgotPasswordPage = () => {
   const [loading, setLoading] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false); // State để check đã gửi hay chưa
+  const [isSuccess, setIsSuccess] = useState(false); 
   const navigate = useNavigate();
 
   const onFinish = (values) => {
     setLoading(true);
     
-    // Giả lập gọi API gửi mail
     console.log('Đang gửi yêu cầu reset cho email:', values.email);
     
     setTimeout(() => {
       setLoading(false);
-      setIsSuccess(true); // Chuyển sang màn hình thông báo thành công
+      setIsSuccess(true); 
       message.success('Đã gửi liên kết đặt lại mật khẩu!');
     }, 1500);
   };
 
-  // --- GIAO DIỆN 1: NHẬP EMAIL ---
   const renderForm = () => (
     <Form
       name="forgot_password"
@@ -56,7 +53,6 @@ const ForgotPasswordPage = () => {
     </Form>
   );
 
-  // --- GIAO DIỆN 2: THÔNG BÁO THÀNH CÔNG ---
   const renderSuccess = () => (
     <Flex vertical align="center" gap="middle">
       <div style={{ fontSize: 48, color: '#52c41a' }}>

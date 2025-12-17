@@ -1,9 +1,8 @@
-/* Container chính của Card */
 .card {
   height: 100%;
   border-radius: 8px;
-  overflow: hidden; /* Bo góc cả nội dung bên trong */
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* Thêm bóng nhẹ */
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); 
 }
 
 .cardTitle {
@@ -12,22 +11,17 @@
   color: #1f1f1f;
 }
 
-/* Style cho slot 'body' của Antd Card */
-/* QUAN TRỌNG: Padding 0 để bản đồ tràn viền đẹp mắt */
 .cardBody {
-  height: 400px; /* Chiều cao cố định */
+  height: 400px; 
   padding: 0 !important; 
   position: relative;
 }
 
-/* Div bọc ngoài Map */
 .mapWrapper {
   width: 100%;
   height: 100%;
-  background-color: #f0f0f0; /* Màu nền chờ khi map đang load */
+  background-color: #f0f0f0;
 }
-
-/* --- Tách style của Popup ra --- */
 
 .popupContainer {
   min-width: 200px;
@@ -37,7 +31,7 @@
 
 .popupTitle {
   margin: 0 0 8px;
-  color: #1677ff; /* Dùng màu xanh Ant Design thay vì đỏ, nhìn thân thiện hơn */
+  color: #1677ff;
   font-weight: 700;
   font-size: 14px;
   border-bottom: 1px solid #f0f0f0;
@@ -47,7 +41,7 @@
 .popupInfo {
   font-size: 12px;
   color: #555;
-  line-height: 1.8; /* Tăng khoảng cách dòng cho dễ đọc */
+  line-height: 1.8;
   display: flex;
   flex-direction: column;
 }

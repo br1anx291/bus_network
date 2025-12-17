@@ -1,57 +1,44 @@
-/* src/features/dashboard/components/StatCardsGroup/StatCardsGroup.module.css */
-
-/* 1. Style cho vỏ ngoài <Card> */
 .statCard {
-  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.25) !important; /* Dùng !important để ghi đè Antd */
+  box-shadow: 0 4px 5px rgba(0, 0, 0, 0.25) !important;
   border-radius: 16px !important;
 }
 
-/* 2. Style cho vùng nội dung <Card> (thay cho padding) */
 .statCardBody {
   padding: 20px !important;
 }
 
-/* 3. Vỏ bọc flex chính */
 .contentWrapper {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
 }
 
-/* 4. Vỏ bọc icon (bên trái) */
 .iconWrapper {
   width: 50px;
   height: 50px;
   border-radius: 50%;
-  /* Tạm thời hardcode, sau này nên dùng biến CSS */
   background-color: rgba(255, 216, 0, 0.2); 
   display: flex;
-  /* Đã sửa: align-items: center để icon vào giữa dọc */
   align-items: center; 
   justify-content: center;
   flex-shrink: 0;
 }
 
-/* 5. Icon bên trong */
 .icon {
   font-size: 28px;
   color: #000;
-  /* Giúp icon Antd căn giữa đẹp hơn */
   display: block; 
 }
 
-/* 6. Vỏ bọc text (bên phải) */
 .textWrapper {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   margin-left: 18px;
   flex: 1;
-  /* Thêm cái này để chống tràn text */
   min-width: 0; 
 }
 
-/* 7. Số liệu (value) */
 .textValue {
   font-size: 26px;
   font-weight: bold;
@@ -59,7 +46,6 @@
   line-height: 1.2;
 }
 
-/* 8. Tiêu đề (title) */
 .textTitle {
   font-size: 14px;
   color: #555;

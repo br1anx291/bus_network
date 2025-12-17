@@ -1,11 +1,7 @@
-/* src/layouts/MainLayout.module.css */
-
 .layoutRoot {
   min-height: 100vh;
 }
 
-/* 1. Đảm bảo sidebar có "justify-content" 
-   để đẩy 2 nhóm ra xa nhau */
 .sidebar {
   background: #FFD800;
   display: flex;
@@ -16,8 +12,6 @@
 
 .logo {
   height: 64px;
-  /* margin: 16px; */
-
   display: flex;
   align-items: center;
   justify-content: center;
@@ -25,8 +19,7 @@
   font-size: 20px;
   font-weight: bold;
   font-family: 'Poppins', sans-serif;
-  border-bottom: 1px solid #000000; /* Đường viền dưới màu đen, dày 3px */
-
+  border-bottom: 1px solid #000000;
 }
 
 .menuTitle {
@@ -39,7 +32,6 @@
   text-transform: uppercase;
 }
 
-/* === BẮT ĐẦU KHỐI THAY THẾ === */
 
 .sidebarMenu {
   background: transparent !important;
@@ -48,9 +40,6 @@
   font-weight: 500;
 }
 
-/* --- 1. STYLE CHO CÁC MỤC CHA (CẤP 1) ---
-  (Áp dụng cho cả 'Tổng Quan' và 'Vận Hành')
-*/
 .sidebarMenu > :global(.ant-menu-item),
 .sidebarMenu > :global(.ant-menu-submenu) > :global(.ant-menu-submenu-title) {
   border-radius: 20px !important;
@@ -58,24 +47,21 @@
   width: 200px !important; 
   color: #2d2d2d !important;
   height: 44.76px !important;
-  font-size: 16px !important; /* Cỡ chữ LỚN cho mục cha */
+  font-size: 16px !important; 
   font-weight: 500;
   opacity: 0.6;
   
-  /* Reset lại padding để căn đều icon và chữ */
   padding-left: 24px !important; 
   display: flex !important;
   align-items: center;
 }
 
-/* HOVER cho CẤP 1 */
 .sidebarMenu > :global(.ant-menu-item:hover),
 .sidebarMenu > :global(.ant-menu-submenu) > :global(.ant-menu-submenu-title:hover) {
   background-color: #FFFBE6 !important;
   color: #2d2d2d !important;
 }
 
-/* SELECTED cho CẤP 1 (ví dụ: khi chọn 'Tổng Quan') */
 .sidebarMenu > :global(.ant-menu-item-selected) {
   background-color: rgba(45, 45, 45, 0.1) !important;
   color: #2d2d2d !important;
@@ -83,9 +69,6 @@
   opacity: 1  !important;
 }
 
-/* "ĐANG MỞ" cho CẤP 1 (ví dụ: khi 'Vận Hành' đang mở)
-  Làm cho nó trông giống như "selected"
-*/
 .sidebarMenu > :global(.ant-menu-submenu-open) > :global(.ant-menu-submenu-title) {
   background-color: rgba(45, 45, 45, 0.1) !important;
   color: #2d2d2d !important;
@@ -93,33 +76,21 @@
   opacity: 1  !important;
 }
 
-/* --- 2. STYLE CHO CÁC MỤC CON (BÊN TRONG SUBMENU) --- */
-/* Style cho 'Quản lý xe', 'Quản lý tuyến'...
-  Chúng ta làm chúng nhỏ hơn và thụt vào
-*/
 .sidebarMenu :global(.ant-menu-submenu) :global(.ant-menu-item) {
   font-size: 15px !important; /* Cỡ chữ NHỎ HƠN */
   color: #444 !important;
   height: 40px !important;
   border-radius: 10px !important;
-  
-  /* === SỬA LỖI Ở ĐÂY === */
-  /* Áp dụng lề 20px và rộng 200px giống hệt mục cha */
   margin: 2px 20px !important;
   width: 200px !important; 
-  /* === HẾT SỬA === */
-  
-  /* Thụt lề cho mục con (giữ nguyên) */
   padding-left: 52px !important; 
 }
 
-/* HOVER cho MỤC CON (Không đổi) */
 .sidebarMenu :global(.ant-menu-submenu) :global(.ant-menu-item:hover) {
   background-color: #FFFBE6 !important;
   color: #2d2d2d !important;
 }
 
-/* SELECTED cho MỤC CON (Không đổi) */
 .sidebarMenu :global(.ant-menu-submenu) :global(.ant-menu-item-selected) {
   background-color: rgba(45, 45, 45, 0.1) !important;
   color: #2d2d2d !important;
@@ -127,9 +98,6 @@
   opacity: 1 !important;
 }
 
-/* --- 3. STYLE CHUNG --- */
-
-/* Style cho nút "Đăng xuất" (giữ nguyên) */
 .sidebarMenu :global(.ant-menu-item-danger) {
   background-color: #F44336 !important;
   color: #ffffff !important;
@@ -141,7 +109,6 @@
   color: #ffffff !important;
 }
 
-/* Style ICON (giữ nguyên) */
 .sidebarMenu :global(.ant-menu-item .anticon),
 .sidebarMenu :global(.ant-menu-submenu-title .anticon) {
   font-size: 18px; 
@@ -153,40 +120,32 @@
   vertical-align: middle;
 }
 
-/* === HẾT KHỐI THAY THẾ === */
-
-/* Header và Content (Không đổi) */
 .header {
   padding: 0 63px;
   background: #ffffff;
   border-bottom: 1px solid #000000;
 }
 
-/* (1) Class cho Flex container chính trong header */
 .headerFlex {
   height: 100%;
 }
 
-/* (2) Class cho thanh Search */
 .headerSearch {
   width: 625px; 
 }
 
-/* (3) Class cho icon thông báo */
 .notificationIcon {
   font-size: 20px;
-  vertical-align: middle; /* Căn giữa icon đẹp hơn */
+  vertical-align: middle;
 }
 
-/* (4) Class cho tên user */
 .userName {
   font-weight: bold;
 }
 
-/* (5) Class cho Avatar */
 .userAvatar {
   cursor: pointer;
-  background-color: #87d068; /* Sẽ thay bằng CSS var ở bước sau */
+  background-color: #87d068; 
 }
 
 .content {

@@ -1,7 +1,3 @@
-.pickupRequestTable {
-  /* Thêm style nếu bạn muốn custom Bảng,
-     ví dụ: style cho hàng khi hover */
-}
 .pickupRequestTable :global(.ant-table-thead > tr > th) {
   background-color: #fafafa;
   font-weight: 600;

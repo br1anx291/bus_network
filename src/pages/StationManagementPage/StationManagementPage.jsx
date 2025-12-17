@@ -1,13 +1,8 @@
-// src/pages/StationManagementPage/StationManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
-
-// 1. Import Bảng và Modal CỦA trạm
 import StationTable from '~/features/stations/components/StationTable/StationTable';
 import StationFormModal from '~/features/stations/components/StationFormModal/StationFormModal';
-
-// 2. Import Service CỦA trạm
 import { stationService } from '~/services/stationService';
 
 import styles from './StationManagementPage.module.css';
@@ -15,7 +10,6 @@ import styles from './StationManagementPage.module.css';
 const { Title } = Typography;
 
 const StationManagementPage = () => {
-  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
@@ -24,14 +18,11 @@ const StationManagementPage = () => {
     total: 0,
   });
 
-  // --- 4. SỬA CÁC HÀM SERVICE ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
-      // [NÂNG CẤP 1] GỌI HÀM getAll
       const result = await stationService.getAll(page, pageSize);
       
-      // Xử lý an toàn cho data trả về (Mock object hoặc API array)
       const list = result.data || result || [];
       const totalCount = result.total || list.length || 0;
 
@@ -59,7 +50,6 @@ const StationManagementPage = () => {
 
   const handleDelete = async (id) => {
     try {
-      // [NÂNG CẤP 2] GỌI HÀM delete
       await stationService.delete(id); 
       message.success('Xóa trạm thành công!'); 
       fetchData(pagination.current, pagination.pageSize);
@@ -68,7 +58,6 @@ const StationManagementPage = () => {
     }
   };
 
-  // --- 5. STATE MODAL ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingStation, setEditingStation] = useState(null); 
 
@@ -93,7 +82,6 @@ const StationManagementPage = () => {
 
   return (
     <div className={styles.pageContainer}>
-      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
           Quản lý trạm 
@@ -118,7 +106,6 @@ const StationManagementPage = () => {
         </Flex>
       </Flex>
 
-      {/* --- BẢNG --- */}
       <StationTable 
         data={data}
         loading={loading}
@@ -128,7 +115,6 @@ const StationManagementPage = () => {
         onDelete={handleDelete}
       />
 
-      {/* --- MODAL --- */}
       <StationFormModal 
         open={isModalOpen}
         onClose={handleCloseModal}

@@ -1,10 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message } from 'antd'; 
-
-// 1. Import Service
 import { passengerService } from '~/services/passengerService'; 
 
-// Define options with English values for DB compatibility
 const statusOptions = [
   { value: 'active', label: 'Hoạt động' },
   { value: 'blocked', label: 'Đã khóa' },
@@ -16,7 +13,6 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
 
   const isEditing = !!editingPassenger;
 
-  // 2. Populate form data when editing
   useEffect(() => {
     if (open) {
       if (isEditing) {
@@ -24,7 +20,7 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           name: editingPassenger.name,
           email: editingPassenger.email,
           phone: editingPassenger.phone,
-          address: editingPassenger.address, // Added address field
+          address: editingPassenger.address,
           status: editingPassenger.status || 'active',
         });
       } else {
@@ -35,32 +31,27 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
 
   const handleOk = async () => {
     try {
-      // Validate fields
       const values = await form.validateFields();
-      console.log("1. Form values OK:", values); // <--- THÊM DÒNG NÀY
+      console.log("1. Form values OK:", values); 
       setIsLoading(true);
 
       if (isEditing) {
-        // 3. Update existing passenger
         await passengerService.update(editingPassenger.id, values);
         message.success('Cập nhật hành khách thành công!');
       } else {
-        // 4. Create new passenger
         await passengerService.create(values);
         message.success('Thêm hành khách mới thành công!');
       }
 
-      onSuccess(); // Refresh table
-      onClose();   // Close modal
+      onSuccess(); 
+      onClose();  
 
     } catch (error) {
       console.log("FAILED VALIDATION:", error);
       if (error.errorFields) {
-        // Validation error, do nothing (form displays errors)
       } else {
         console.error('Lỗi khi lưu thông tin hành khách:', error);
         
-        // Handle PocketBase errors
         const errorData = error.response?.data || {};
         const firstKey = Object.keys(errorData)[0];
         const msg = firstKey 
@@ -91,10 +82,8 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
         layout="vertical"
         name="passenger_form"
         style={{ marginTop: '24px' }}
-        // Use English value 'active' for initial state
         initialValues={{ status: 'active' }}
       >
-        {/* TÊN HÀNH KHÁCH */}
         <Form.Item
           name="name"
           label="Tên hành khách"
@@ -103,7 +92,6 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Ví dụ: Lý Thị M" />
         </Form.Item>
 
-        {/* EMAIL */}
         <Form.Item
           name="email"
           label="Email (Tài khoản)"
@@ -114,11 +102,10 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input 
             placeholder="Ví dụ: lym@email.com" 
             disabled={isEditing}
-            style={isEditing ? { color: '#888', cursor: 'not-allowed' } : {}} // (Tùy chọn) Style thêm cho rõ
+            style={isEditing ? { color: '#888', cursor: 'not-allowed' } : {}}
           />
         </Form.Item>
 
-        {/* SỐ ĐIỆN THOẠI */}
         <Form.Item
           name="phone"
           label="Số điện thoại"
@@ -127,7 +114,6 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Ví dụ: 0901234567" />
         </Form.Item>
 
-        {/* ĐỊA CHỈ - New Field */}
         <Form.Item
           name="address"
           label="Địa chỉ"
@@ -136,7 +122,6 @@ const PassengerFormModal = ({ open, onClose, onSuccess, editingPassenger }) => {
           <Input placeholder="Ví dụ: 123 Nguyễn Văn Linh, Đà Nẵng" />
         </Form.Item>
 
-        {/* TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

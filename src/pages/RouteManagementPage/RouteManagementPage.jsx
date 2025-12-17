@@ -1,4 +1,3 @@
-// src/pages/RouteManagementPage/RouteManagementPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Button, Flex, Typography, message } from 'antd';
 import { PlusOutlined,ReloadOutlined } from '@ant-design/icons';
@@ -23,7 +22,6 @@ const RouteManagementPage = () => {
     total: 0,
   });
 
-  // --- 1. FETCH DATA ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
@@ -64,7 +62,6 @@ const RouteManagementPage = () => {
     }
   };
 
-  // --- MODAL FORM (THÊM/SỬA THÔNG TIN) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState(null);
 
@@ -87,7 +84,7 @@ const RouteManagementPage = () => {
     fetchData(); 
   };
 
-  // --- MODAL VẼ MAP (LOGIC QUAN TRỌNG) ---
+
   const [isDrawModalOpen, setIsDrawModalOpen] = useState(false);
   const [routeToDraw, setRouteToDraw] = useState(null);
 
@@ -96,13 +93,9 @@ const RouteManagementPage = () => {
     setIsDrawModalOpen(true);
   };
 
-  // [ĐÃ SỬA LỖI TẠI ĐÂY]
+
 const handleSaveMap = async (id, coordinates) => {
     try {
-      // SỬA ĐỔI 1: Không dùng JSON.stringify nữa.
-      // Vì cột path_json trong DB là kiểu JSON, nó nhận trực tiếp Array.
-      
-      // SỬA ĐỔI 2: Đổi tên key từ 'path' thành 'path_json' (cho khớp DB)
       await routeService.update(id, { path_json: coordinates }); 
 
       message.success('Cập nhật lộ trình thành công!');
@@ -110,7 +103,6 @@ const handleSaveMap = async (id, coordinates) => {
       setIsDrawModalOpen(false);
       setRouteToDraw(null);
 
-      // Tải lại dữ liệu mới nhất
       fetchData(pagination.current, pagination.pageSize); 
     } catch (error) {
       console.error(error);
@@ -118,7 +110,6 @@ const handleSaveMap = async (id, coordinates) => {
     }
   };
 
-  // --- MODAL TRẠM ---
   const [isStationModalOpen, setIsStationModalOpen] = useState(false);
   const [routeToAssign, setRouteToAssign] = useState(null);
   
@@ -177,7 +168,7 @@ const handleSaveMap = async (id, coordinates) => {
         open={isDrawModalOpen}
         editingRoute={routeToDraw}
         onClose={() => setIsDrawModalOpen(false)}
-        onSave={handleSaveMap} // Hàm đã sửa lỗi
+        onSave={handleSaveMap}
       />
 
       <RouteStationModal

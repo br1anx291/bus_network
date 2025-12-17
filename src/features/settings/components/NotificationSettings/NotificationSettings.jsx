@@ -1,4 +1,3 @@
-// src/features/settings/components/NotificationSettings/NotificationSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { Form, Switch, Button, Typography, Flex, message, Spin } from 'antd';
 import styles from './NotificationSettings.module.css';
@@ -16,7 +15,6 @@ const NotificationItem = ({ label, namePrefix, isCategory = false, disabled = fa
     <div className={`${styles.settingItem} ${disabled ? styles.itemDisabled : ''}`}>
       <Text disabled={disabled}>{label}</Text>
       
-      {/* Cột "Trên Web" */}
       <div>
         <Form.Item 
             name={[...namePrefix, 'web']} 
@@ -27,7 +25,6 @@ const NotificationItem = ({ label, namePrefix, isCategory = false, disabled = fa
         </Form.Item>
       </div>
 
-      {/* Cột "Email" */}
       <div>
         <Form.Item 
             name={[...namePrefix, 'email']} 
@@ -41,7 +38,6 @@ const NotificationItem = ({ label, namePrefix, isCategory = false, disabled = fa
   );
 };
 
-// --- Component chính ---
 const NotificationSettings = () => {
 
   const { settings, updateSettings } = useNotification();
@@ -57,7 +53,7 @@ const NotificationSettings = () => {
 
 
   const onFinish = async (values) => {
-    setSubmitting(true); // 1. Bắt đầu quay
+    setSubmitting(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 600));
       await updateSettings(values);  
@@ -85,7 +81,6 @@ const NotificationSettings = () => {
       onFinish={onFinish}
       className={styles.formContainer}
     >
-      {/* --- KHỐI 1: NÚT KHÔNG LÀM PHIỀN --- */}
       <div className={styles.settingBlock}>
         <Flex justify="space-between" align="center">
           <div>
@@ -98,7 +93,6 @@ const NotificationSettings = () => {
         </Flex>
       </div>
 
-      {/* --- KHỐI 2: DANH SÁCH CẤU HÌNH --- */}
       <div className={styles.settingBlock}>
         <Title level={5} style={{ marginBottom: '16px' }}>
           Chọn loại thông báo và kênh bạn muốn nhận
@@ -110,8 +104,6 @@ const NotificationSettings = () => {
           <span>EMAIL</span>
         </div>
 
-        
-        {/* --- Nhóm Vận hành --- */}
         <NotificationItem label="Cảnh báo Vận hành" isCategory />
         <NotificationItem 
             label="Xe lệch tuyến" 
@@ -129,7 +121,6 @@ const NotificationSettings = () => {
             disabled={doNotDisturb}
         />
 
-        {/* --- Nhóm Kỹ thuật --- */}
         <NotificationItem label="Cảnh báo Kỹ thuật" isCategory />
         <NotificationItem 
             label="Thiết bị mất kết nối" 
@@ -143,7 +134,6 @@ const NotificationSettings = () => {
         />
       </div>
 
-      {/* --- NÚT LƯU --- */}
       <Form.Item style={{ marginTop: '24px', textAlign: 'right' }}>
         <Button 
           type="primary" 

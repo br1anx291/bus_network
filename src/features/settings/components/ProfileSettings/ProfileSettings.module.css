@@ -1,5 +1,4 @@
 .formContainer {
-  /* Giới hạn độ rộng của form cho đẹp */
   max-width: 900px;
 }
 
@@ -15,9 +14,7 @@
   gap: 16px;
 }
 
-/* Tùy chỉnh component Upload của Antd */
 .avatarUploader :global(.ant-upload-select) {
-  /* Bỏ giao diện mặc định (cái hộp) */
   background: none !important;
   border: none !important;
   width: auto !important;

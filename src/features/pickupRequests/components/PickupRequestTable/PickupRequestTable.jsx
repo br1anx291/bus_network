@@ -5,7 +5,6 @@ import dayjs from 'dayjs';
 
 import styles from './PickupRequestTable.module.css';
 
-// --- 1. ĐỊNH NGHĨA TRẠNG THÁI (MAPPING) ---
 const STATUS_MAP = {
   'pending':   { text: 'CHỜ DUYỆT', color: 'orange' },
   'accepted':  { text: 'ĐÃ DUYỆT',  color: 'green' },
@@ -25,7 +24,6 @@ const PickupRequestTable = ({
 
   const columns = useMemo(
     () => [
-      // --- CỘT 1: THÔNG TIN KHÁCH HÀNG ---
       { 
         title: 'HÀNH KHÁCH', 
         key: 'userInfo',
@@ -41,7 +39,6 @@ const PickupRequestTable = ({
         )
       },
 
-      // --- CỘT 2: ĐIỂM ĐÓN ---
       { 
         title: 'ĐIỂM ĐÓN', 
         dataIndex: 'stationName', 
@@ -53,7 +50,6 @@ const PickupRequestTable = ({
         )
       },
 
-      // --- CỘT 3: CHUYẾN & GIỜ CHẠY ---
       { 
         title: 'CHUYẾN (GIỜ ĐI)', 
         key: 'tripInfo',
@@ -69,7 +65,6 @@ const PickupRequestTable = ({
         }
       },
 
-      // --- CỘT 4: XE ĐÓN ---
       {
         title: 'XE ĐÓN',
         dataIndex: 'busPlate',
@@ -77,7 +72,6 @@ const PickupRequestTable = ({
         render: (text) => text ? <Tag color="geekblue">{text}</Tag> : <span style={{color: '#ccc'}}>-</span>
       },
 
-      // --- CỘT 5: THỜI GIAN GỬI ---
       { 
         title: 'GỬI LÚC', 
         dataIndex: 'createdAt', 
@@ -87,7 +81,6 @@ const PickupRequestTable = ({
         sorter: (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
       },
 
-      // --- CỘT 6: TRẠNG THÁI ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -100,15 +93,13 @@ const PickupRequestTable = ({
         },
       },
 
-      // --- CỘT 7: XỬ LÝ (LOGIC MỚI) ---
       {
         title: 'XỬ LÝ',
         key: 'action',
         align: 'center',
-        width: 140, // Tăng width một chút để nút không bị chật
+        width: 140, 
         render: (_, record) => {
           
-          // TRƯỜNG HỢP 1: PENDING - Cần Admin duyệt hoặc từ chối
           if (record.status === 'pending') {
             return (
               <Space size="small">
@@ -145,7 +136,6 @@ const PickupRequestTable = ({
             );
           }
 
-// TRƯỜNG HỢP 2: ACCEPTED - THÊM NÚT HỦY TẠI ĐÂY
           if (record.status === 'accepted') {
             return (
               <Space direction="vertical" style={{ width: '100%', alignItems: 'center' }}>
@@ -153,21 +143,19 @@ const PickupRequestTable = ({
                   Đang chờ xe
                 </span>
                 
-                {/* Chỉ hiện nút Hủy nếu có truyền hàm onCancel */}
                 {onCancel && (
                   <Tooltip title="Khách báo hủy chuyến này">
                     <Popconfirm
                       title="Hủy chuyến đã duyệt?"
                       description="Hành động này sẽ hủy chuyến đi đang chờ."
-                      onConfirm={() => onCancel(record.id)} // Gọi hàm onCancel
-                      okText="Hủy chuyến"
+                      onConfirm={() => onCancel(record.id)} 
                       cancelText="Không"
                       okButtonProps={{ danger: true }}
                     >
                       <Button 
                         size="small" 
                         danger 
-                        type="dashed" // Dùng dashed để bớt nổi bật hơn nút chính
+                        type="dashed"
                         style={{ fontSize: '12px' }}
                       >
                         Hủy
@@ -179,7 +167,6 @@ const PickupRequestTable = ({
             );
           }
 
-          // TRƯỜNG HỢP 3: REJECTED / COMPLETED - Quy trình đã kết thúc
           return <span style={{ color: '#d9d9d9' }}>-</span>;
         },
       },

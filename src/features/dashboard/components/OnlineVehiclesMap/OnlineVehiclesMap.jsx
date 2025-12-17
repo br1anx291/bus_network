@@ -5,25 +5,22 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import { Card, Typography } from 'antd';
 import pb from '~/api/pocketbase'; 
 import BusMarker from '~/features/dashboard/components/BusMarker/BusMarker'; 
-import { initialViewState } from '../../data/dashboardMockData'; 
 import styles from './OnlineVehiclesMap.module.css'; 
-
 const { Title } = Typography;
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
-
-// --- HÀM XỬ LÝ DỮ LIỆU ---
+const initialViewState = {
+  latitude: 16.0600,
+  longitude: 108.2200,
+  zoom: 12,
+};
 const processLatestBusLocations = (records) => {
   const busMap = new Map();
 
-  // Sắp xếp log mới nhất lên đầu
   const sortedRecords = [...records].sort((a, b) => new Date(b.created) - new Date(a.created));
 
   sortedRecords.forEach((record) => {
-    // 1. Strict Check: Phải có ID xe
     const busId = record.buses; 
     
-    // 2. Strict Check: Trạng thái phải là 'active' (Phòng hờ API filter sót)
-    // Lưu ý: data từ API getFullList đã lọc rồi, nhưng check thêm ở đây không thừa
     const busInfo = record.expand?.buses || {};
     const isActive = busInfo.status === 'active';
 
@@ -78,14 +75,8 @@ const OnlineVehiclesMap = () => {
       try {
         setLoading(true);
 
-        // -----------------------------------------------------------
-        // 1. API FILTERING (LỌC NGAY TẠI SERVER)
-        // -----------------------------------------------------------
         const records = await pb.collection('bus_locations').getFullList({
           sort: '-created',
-          // CÚ PHÁP QUAN TRỌNG:
-          // buses != '' : Loại bỏ log rác không có xe
-          // buses.status = 'active' : Chỉ lấy log của xe có status là 'active'
           filter: "buses != '' && buses.status = 'active'", 
           expand: 'buses.driver,buses.current_route', 
         });
@@ -95,28 +86,20 @@ const OnlineVehiclesMap = () => {
         setBusLocations(uniqueBuses);
         setLoading(false);
 
-        // -----------------------------------------------------------
-        // 2. REAL-TIME FILTERING
-        // -----------------------------------------------------------
         pb.collection('bus_locations').subscribe('*', function (e) {
-          // Chỉ xử lý Create hoặc Update
           if (e.action === 'create' || e.action === 'update') {
             const record = e.record;
             const busId = record.buses;
             
             if (!busId) return;
 
-            // CHECK TRẠNG THÁI REAL-TIME
-            // Khi có bản tin mới, ta phải xem thông tin xe đi kèm có active không
             const busInfo = record.expand?.buses || {};
             
-            // Nếu xe KHÔNG active, ta phải loại bỏ nó khỏi bản đồ (trường hợp xe đang chạy thì bị set Maintenance)
             if (busInfo.status !== 'active') {
                 setBusLocations(prev => prev.filter(b => b.id !== busId));
                 return;
             }
 
-            // Nếu Active thì cập nhật bình thường
             setBusLocations(prev => {
                 const lat = record.latitude;
                 const lng = record.longitude;

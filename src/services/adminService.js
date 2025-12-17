@@ -1,32 +1,23 @@
-// src/services/adminService.js
 import pb from '~/api/pocketbase';
 
-// --- CẤU HÌNH ---
-const USE_MOCK = false; // Chuyển sang FALSE để chạy thật với PocketBase
+const USE_MOCK = false; 
 
-// --- HÀM MAPPING (Cầu nối DB Users -> UI AdminTable & Profile) ---
 const mapToUI = (record) => {
-  // Lấy URL file Avatar nếu có
-  // LƯU Ý: 'avatar' phải là tên field File trong collection users
   const avatarUrl = record.avatar 
     ? pb.files.getUrl(record, record.avatar, { thumb: '100x100' }) 
     : null;
 
   return {
     id: record.id,
-    
-    // 1. Thông tin cơ bản (Dùng chung)
-    name: record.name || record.username || 'Người dùng hệ thống', // Tên hiển thị
+    name: record.name || record.username || 'Người dùng hệ thống', 
     username: record.username,
     email: record.email,
     
-    // 2. Thông tin cá nhân (Profile Settings)
-    phoneNumber: record.phone_number || '', // DB: phone_number -> UI: phoneNumber
-    dob: record.birthdate || null,          // DB: birthdate -> UI: dob (ngày sinh)
+    phoneNumber: record.phone_number || '', 
+    dob: record.birthdate || null,          
     gender: record.gender || null,
-    avatarUrl: avatarUrl,                   // URL Avatar
+    avatarUrl: avatarUrl,             
     
-    // 3. Thông tin hệ thống (Admin/Role Management)
     role: record.role || 'staff',
     status: record.verified ? 'active' : 'pending',
     created: record.created_at,
@@ -34,20 +25,11 @@ const mapToUI = (record) => {
 };
 
 export const adminService = {
-  
-  // ===============================================
-  // === CHỨC NĂNG QUẢN LÝ ADMIN (User CRUD) ===
-  // ===============================================
 
-  /**
-   * Lấy danh sách Users (Cho trang quản lý Admin/Users)
-   */
   getAll: async (page = 1, pageSize = 10) => {
-    if (USE_MOCK) return { data: [], total: 0 };
-
     try {
       const result = await pb.collection('users').getList(page, pageSize, {
-        sort: '-created_at', // Mới nhất lên đầu
+        sort: '-created_at',
       });
 
       return {
@@ -60,9 +42,7 @@ export const adminService = {
     }
   },
 
-  /**
-   * Lấy thông tin chi tiết của user bất kỳ (getOne)
-   */
+
   getUserById: async (id) => {
     try {
       const record = await pb.collection('users').getOne(id);
@@ -72,9 +52,6 @@ export const adminService = {
     }
   },
 
-  /**
-   * Tạo User mới
-   */
   create: async (data) => {
     try {
       const dbPayload = {
@@ -96,9 +73,6 @@ export const adminService = {
     }
   },
 
-  /**
-   * Cập nhật User (Cho trang quản lý Admin/Users)
-   */
   update: async (id, data) => {
     try {
       const dbPayload = {
@@ -115,9 +89,6 @@ export const adminService = {
     }
   },
 
-  /**
-   * Xóa User
-   */
   delete: async (id) => {
     try {
       return await pb.collection('users').delete(id);
@@ -127,21 +98,11 @@ export const adminService = {
     }
   },
 
-  // =========================================================
-  // === CHỨC NĂNG MỚI CHO PROFILE SETTINGS (USER ĐANG ĐN) ===
-  // =========================================================
-  
-  /**
-   * Lấy hồ sơ của người dùng đang đăng nhập
-   */
   getProfile: async () => {
-    if (USE_MOCK) return {}; 
-
     const userId = pb.authStore.model?.id;
     if (!userId) throw new Error("User not logged in");
     
     try {
-// $autoCancel: false để tránh bị hủy request khi component unmount
       const record = await pb.collection('users').getOne(userId, { $autoCancel: false, 'v': new Date().getTime() });
       return mapToUI(record);
     } catch (error) {
@@ -150,31 +111,23 @@ export const adminService = {
     }
   },
 
-  /**
-   * Cập nhật các trường hồ sơ cá nhân (Tên, DOB, Giới tính, SĐT)
-   * @param {object} data - Dữ liệu đã được chuẩn hóa từ UI
-   */
   updateProfile: async (data) => {
-    if (USE_MOCK) return data; 
-    
     const userId = pb.authStore.model?.id;
     if (!userId) throw new Error("User not logged in");
-    
     console.log("--> [Service] Nhận data từ UI:", data);
 
-    // Mapping ngược từ tên UI sang tên DB
     const dbPayload = {
       gender: data.gender,
       phone_number: data.phoneNumber,
       birthdate: data.dob,
     };
+
     console.log("--> [Service] Payload gửi DB:", dbPayload);
     
     try {
       const record = await pb.collection('users').update(userId, dbPayload);
       pb.authStore.save(pb.authStore.token, record);
       console.log("--> [Service] Update thành công, AuthStore updated.");
-
       return mapToUI(record);
     } catch (error) {
       console.error("[AdminService] Lỗi cập nhật Profile:", error);
@@ -182,16 +135,9 @@ export const adminService = {
     }
   },
 
-  /**
-   * Upload và cập nhật Avatar
-   * @param {File} file - Object File từ Upload Component
-   */
   updateAvatar: async (file) => {
-    if (USE_MOCK) return {}; 
-    
     const userId = pb.authStore.model?.id;
     if (!userId) throw new Error("User not logged in");
-    
     const formData = new FormData();
     formData.append('avatar', file); 
     
@@ -205,12 +151,8 @@ export const adminService = {
     }
   },
   changePassword: async (data) => {
-    // 1. Kiểm tra đăng nhập
     const userId = pb.authStore.model?.id;
     if (!userId) throw new Error("User not logged in");
-
-    // 2. Chuẩn bị Payload đúng chuẩn PocketBase
-    // PocketBase yêu cầu chính xác 3 key này:
     const dbPayload = {
       oldPassword: data.oldPassword,
       password: data.newPassword,
@@ -218,12 +160,8 @@ export const adminService = {
     };
 
     try {
-      // 3. Gọi API update
       const record = await pb.collection('users').update(userId, dbPayload);
-      
-      // Cập nhật lại AuthStore (để đảm bảo token đồng bộ nếu cần)
       pb.authStore.save(pb.authStore.token, record);
-      
       return true;
     } catch (error) {
       console.error("[AdminService] Lỗi đổi mật khẩu:", error);

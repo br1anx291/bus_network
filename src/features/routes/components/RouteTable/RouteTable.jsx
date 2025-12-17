@@ -1,11 +1,9 @@
-// src/features/routes/components/RouteTable/RouteTable.jsx
 import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, CompassOutlined, UnorderedListOutlined } from '@ant-design/icons'; // Thêm icon Compass
+import { EditOutlined, DeleteOutlined, CompassOutlined, UnorderedListOutlined } from '@ant-design/icons'; 
 
 import styles from './RouteTable.module.css';
   
-// 1. TỪ ĐIỂN TRẠNG THÁI (Anh -> Việt)
 const STATUS_MAP = {
   'active': { text: 'HOẠT ĐỘNG', color: 'green' },
   'maintenance': { text: 'BẢO TRÌ', color: 'orange' },
@@ -26,7 +24,6 @@ const RouteTable = ({
 
   const columns = useMemo(
     () => [
-      // --- CỘT 1: MÃ TUYẾN (Đưa lên đầu) ---
       { 
         title: 'MÃ TUYẾN', 
         dataIndex: 'code', 
@@ -37,7 +34,6 @@ const RouteTable = ({
         )
       },
 
-      // --- CỘT 2: TÊN TUYẾN ---
       { 
         title: 'TÊN TUYẾN', 
         dataIndex: 'name', 
@@ -46,15 +42,13 @@ const RouteTable = ({
         render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>
       },
 
-      // --- CỘT 3: MÔ TẢ ---
       {
         title: 'MÔ TẢ LỘ TRÌNH',
         dataIndex: 'description', 
         key: 'description',
-        ellipsis: true, // Tự động cắt ngắn nếu quá dài (...)
+        ellipsis: true,
       },
 
-      // --- CỘT 4: TRẠNG THÁI ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -70,20 +64,18 @@ const RouteTable = ({
         },
       },
 
-      // --- CỘT 5: HÀNH ĐỘNG ---
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
         width: 180,
         render: (_, record) => (
           <Space size="small">
-            {/* 1. Nút Sửa lộ trình (Vẽ bản đồ) - CHUẨN BỊ CHO TÍNH NĂNG TỚI */}
             <Tooltip title="Vẽ lộ trình trên bản đồ">
                 <Button 
                   type="default"
                   icon={<CompassOutlined />} 
-                  style={{ color: '#fa8c16', borderColor: '#fa8c16' }} // Màu cam
-                  onClick={() => onEditMap && onEditMap(record)} // Gọi hàm mở Modal vẽ
+                  style={{ color: '#fa8c16', borderColor: '#fa8c16' }}
+                  onClick={() => onEditMap && onEditMap(record)}
                 />
             </Tooltip>
             
@@ -91,12 +83,11 @@ const RouteTable = ({
                 <Button 
                   type="default"
                   icon={<UnorderedListOutlined />} 
-                  style={{ color: '#52c41a', borderColor: '#52c41a' }} // Màu xanh lá
+                  style={{ color: '#52c41a', borderColor: '#52c41a' }}
                   onClick={() => onEditStations && onEditStations(record)} 
                 />
             </Tooltip>
 
-            {/* 2. Nút Sửa thông tin */}
             <Tooltip title="Sửa thông tin">
                 <Button 
                   type="primary" ghost
@@ -105,7 +96,6 @@ const RouteTable = ({
                 />
             </Tooltip>
 
-            {/* 3. Nút Xóa */}
             <Tooltip title="Xóa tuyến">
                 <Popconfirm
                   title="Bạn chắc chắn muốn xóa tuyến này?"

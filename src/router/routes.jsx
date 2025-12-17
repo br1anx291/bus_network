@@ -1,7 +1,5 @@
-// src/router/routes.jsx
 import { createBrowserRouter, Navigate } from 'react-router-dom';
 import MainLayout from '../components/layout/MainLayout';
-// --- SỬA LỖI 2: IMPORT ĐÚNG ---
 import AuthLayout from '../components/AuthLayout'; 
 import DashboardPage from '../pages/DashboardPage/DashboardPage';
 import MapPage from '../pages/MapPage/MapPage';
@@ -22,9 +20,9 @@ import ForgotPasswordPage from '~/pages/ForgotPasswordPage/ForgotPasswordPage';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export const router = createBrowserRouter([
-  // === LUỒNG 1: MAIN APPLICATION (Có sidebar) ===
+
   {
-    path: '/', // <-- OK, Luồng Main phải là '/'
+    path: '/', 
     element: (
       <ProtectedRoute>
         <MainLayout />
@@ -44,7 +42,6 @@ export const router = createBrowserRouter([
         element: <Navigate to="/van-hanh/quan-ly-xe" replace />,
       },
       {
-        // --- SỬA LỖI 3: BỎ DẤU / Ở ĐẦU ---
         path: 'van-hanh/quan-ly-xe', 
         element: <VehicleManagementPage />,
       },
@@ -95,21 +92,20 @@ export const router = createBrowserRouter([
     ],
   },
   
-  // === LUỒNG 2: AUTHENTICATION (Không có sidebar) ===
+
   {
-    // --- SỬA LỖI 1: XÓA 'path: "/"' ---
-    element: <AuthLayout />, // <-- Chỉ cần element
+    element: <AuthLayout />,
     children: [
       {
-        path: 'login', // Đường dẫn /login
+        path: 'login', 
         element: <LoginPage />,
       },
       {
-        path: 'register', // Đường dẫn /register
+        path: 'register', 
         element: <RegisterPage />,
       },
       {
-        path: 'forgot-password', // Đường dẫn /forgot-password
+        path: 'forgot-password',
         element: <ForgotPasswordPage />,
       }
     ],

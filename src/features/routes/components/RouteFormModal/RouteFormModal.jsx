@@ -1,9 +1,7 @@
-// src/features/routes/components/RouteFormModal/RouteFormModal.jsx
 import React, { useEffect, useState } from 'react';
-import { Modal, Form, Input, Select, message, InputNumber } from 'antd';
-
-// 1. Import routeService
+import { Modal, Form, Input, Select, message } from 'antd';
 import { routeService } from '~/services/routeService'; 
+import './RouteFormModal.module.css'; 
 
 const statusOptions = [
   { value: 'active', label: 'Đang hoạt động' },
@@ -17,14 +15,13 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
 
   const isEditing = !!editingRoute;
 
-  // 2. Đổ dữ liệu vào form khi sửa
   useEffect(() => {
     if (open) {
       if (isEditing) {
         form.setFieldsValue({
           code: editingRoute.code,
           name: editingRoute.name,
-          description: editingRoute.description, // Thêm trường này
+          description: editingRoute.description,
           status: editingRoute.status || '',
         });
       } else {
@@ -39,30 +36,22 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
       setIsLoading(true);
 
       if (isEditing) {
-        // 3. [NÂNG CẤP] Gọi hàm update (Truyền ID riêng)
         await routeService.update(editingRoute.id, values);
         message.success('Cập nhật tuyến thành công!');
       } else {
-        // 4. [NÂNG CẤP] Gọi hàm create
         await routeService.create(values);
         message.success('Thêm tuyến mới thành công!');
       }
 
-      onSuccess(); // Tải lại bảng
-      onClose();   // Đóng modal
+      onSuccess(); 
+      onClose();   
 
     } catch (error) {
-      // [FIX QUAN TRỌNG] Phân loại lỗi để hiển thị
       if (error.errorFields) {
-        // Đây là lỗi chưa nhập đủ thông tin (Antd tự hiện chữ đỏ dưới ô input)
-        // Không cần alert message gây khó chịu
         console.log("Validate failed:", error);
       } else {
-// --- SỬA ĐOẠN NÀY ĐỂ SOI LỖI 400 ---
         console.error('Chi tiết lỗi PocketBase:', error.response); 
-        // error.response.data sẽ cho biết chính xác cột nào sai
         
-        // Hiển thị thông báo lỗi cụ thể
         const errorData = error.response?.data || {};
         const firstKey = Object.keys(errorData)[0];
         const errorMessage = firstKey 
@@ -91,9 +80,10 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
         form={form}
         layout="vertical"
         name="route_form"
-        style={{ marginTop: '24px' }}
+        className="route-form" 
         initialValues={{ status: 'active', numStops: 10 }}
       >
+
         <Form.Item
           name="code"
           label="Mã tuyến"
@@ -101,7 +91,7 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
         >
           <Input placeholder="Ví dụ: R1" />
         </Form.Item>
-        {/* FIELD 1: TÊN TUYẾN */}
+
         <Form.Item
           name="name"
           label="Tên tuyến"
@@ -110,7 +100,6 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
           <Input placeholder="Ví dụ: Tuyến 01" />
         </Form.Item>
         
-        {/* FIELD 2: MÔ TẢ (Thêm mới cho khớp Table) */}
         <Form.Item
           name="description"
           label="Mô tả lộ trình"
@@ -119,7 +108,6 @@ const RouteFormModal = ({ open, onClose, onSuccess, editingRoute }) => {
           <Input placeholder="Ví dụ: Bến Thành - Bến xe Miền Tây" />
         </Form.Item>
 
-        {/* FIELD 4: TRẠNG THÁI */}
         <Form.Item
           name="status"
           label="Trạng thái"

@@ -1,4 +1,3 @@
-// src/features/dashboard/components/StatCardsGroup.jsx
 import React, { useEffect, useState } from 'react';
 import { Card, Col, Row, Skeleton } from 'antd';
 import {
@@ -8,32 +7,26 @@ import {
   BellOutlined,
 } from '@ant-design/icons';
 
-// 1. Import Service (Đã tách biệt logic)
 import { dashboardService } from '~/services/dashboardService';
 import styles from './StatCardsGroup.module.css';
 
 const StatCardsGroup = ({ refreshKey }) => {
-  // 2. State
   const [stats, setStats] = useState({
     activeBuses: 0,
-    driverStats: "0/0", // Chuỗi hiển thị "Active/Total"
+    driverStats: "0/0",
     newIncidents: 0,
     pendingPickups: 0,
   });
   const [loading, setLoading] = useState(true);
 
-  // 3. Fetch dữ liệu thông qua Service
   useEffect(() => {
     const fetchStats = async () => {
       setLoading(true);
       
-      // Gọi Service
       const data = await dashboardService.getStats();
 
-      // Update State & Format dữ liệu cho UI
       setStats({
         activeBuses: data.activeBuses,
-        // Format logic hiển thị tại đây:
         driverStats: `${data.activeDrivers}/${data.totalDrivers}`, 
         newIncidents: data.newIncidents,
         pendingPickups: data.pendingPickups,
@@ -45,7 +38,6 @@ const StatCardsGroup = ({ refreshKey }) => {
     fetchStats();
   }, [refreshKey]);
 
-  // 4. Cấu hình hiển thị
   const cardsConfig = [
     {
       key: 'activeBuses',
@@ -55,7 +47,7 @@ const StatCardsGroup = ({ refreshKey }) => {
       bgColor: '#f6ffed',
     },
     {
-      key: 'driverStats', // Key map vào state driverStats
+      key: 'driverStats',
       title: 'Tài xế hoạt động',
       icon: <UserOutlined />,
       color: '#1890ff',

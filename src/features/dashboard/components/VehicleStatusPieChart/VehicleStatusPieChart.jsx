@@ -1,4 +1,3 @@
-// src/features/dashboard/components/VehicleStatusPieChart/VehicleStatusPieChart.jsx
 import React, { useEffect, useState, useMemo } from 'react';
 import { Card, Flex, Typography, Button, Spin, Empty } from 'antd';
 import { useNavigate } from 'react-router-dom';
@@ -15,19 +14,17 @@ import styles from './VehicleStatusPieChart.module.css';
 
 const { Text, Title } = Typography;
 
-// --- ĐỊNH NGHĨA MÀU SẮC (Hardcode để giữ đúng màu bạn thích) ---
 const STATUS_COLORS = {
-  'Đang chạy':   '#52c41a', // Xanh lá
-  'Bảo trì':     '#faad14', // Vàng cam
-  'Ngoại tuyến': '#bfbfbf', // Xám
+  'Đang chạy':   '#52c41a', 
+  'Bảo trì':     '#faad14', 
+  'Ngoại tuyến': '#bfbfbf',
 };
 
 const VehicleStatusPieChart = ({ refreshKey }) => {
-  const navigate = useNavigate(); // Hook điều hướng
+  const navigate = useNavigate(); 
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch dữ liệu từ API
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -39,7 +36,6 @@ const VehicleStatusPieChart = ({ refreshKey }) => {
     fetchData();
   }, [refreshKey]);
 
-  // 2. Tính tổng (để tính %)
   const total = useMemo(() => data.reduce((acc, item) => acc + item.value, 0), [data]);
 
   return (
@@ -51,25 +47,22 @@ const VehicleStatusPieChart = ({ refreshKey }) => {
       }
       className={styles.card}
       bordered={false}
-      style={{ height: '100%' }} // Đảm bảo chiều cao đầy đủ
+      style={{ height: '100%' }}
     >
       <Spin spinning={loading}>
         <Flex vertical align="center" justify="center" style={{ minHeight: '300px' }}>
           
-          {/* Header phụ */}
           <Flex justify="space-between" align="center" className={styles.subHeader} style={{ width: '100%', marginBottom: 20 }}>
             <Text type="secondary">Cập nhật lúc: {new Date().toLocaleTimeString('vi-VN', {hour: '2-digit', minute:'2-digit'})}</Text>
-            {/* SỬA NÚT REPORT TẠI ĐÂY */}
             <Button 
               size="small" 
               className={styles.reportButton}
-              onClick={() => navigate('/van-hanh/quan-ly-xe')} // Chuyển hướng sang trang Quản lý xe
+              onClick={() => navigate('/van-hanh/quan-ly-xe')} 
             >
               Chi tiết
             </Button>
           </Flex>
 
-          {/* --- BIỂU ĐỒ --- */}
           {total > 0 ? (
             <>
               <div className={styles.chartWrapper} style={{ width: '100%', height: 220 }}>
@@ -99,11 +92,9 @@ const VehicleStatusPieChart = ({ refreshKey }) => {
                 </ResponsiveContainer>
               </div>
 
-              {/* --- CHÚ THÍCH (LEGEND) --- */}
               <Flex justify="center" gap={20} wrap="wrap" style={{ marginTop: 20 }}>
                 {data.map((item) => (
                   <Flex key={item.type} align="center" gap={8}>
-                    {/* Chấm màu */}
                     <div
                       style={{
                         width: 10,

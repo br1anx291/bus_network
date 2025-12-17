@@ -1,11 +1,5 @@
-/* src/index.css */
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700&display=swap');
 
 body {
-  /* ... (các style cũ của bạn) ... */
-
-  /* Thêm dòng này để đặt Poppins làm font chữ mặc định cho toàn bộ web */
   font-family: 'Poppins', sans-serif;
 }
-
-/* ... (các style cũ khác) ... */

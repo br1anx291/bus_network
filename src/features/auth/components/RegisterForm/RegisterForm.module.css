@@ -3,7 +3,7 @@
 }
 
 .title {
-  text-align: left; /* Căn trái như Figma */
+  text-align: left;
   margin-bottom: 8px !important;
 }
 
@@ -15,12 +15,12 @@
 
 .registerButton {
   width: 100%;
-  background-color: #FFD800; /* Màu vàng */
+  background-color: #FFD800;
   border: none;
-  color: #000; /* Chữ đen */
+  color: #000; 
   font-weight: bold;
 }
 
 .registerButton:hover {
-  background-color: #e6c600 !important; /* Vàng đậm hơn khi hover */
+  background-color: #e6c600 !important;
 }

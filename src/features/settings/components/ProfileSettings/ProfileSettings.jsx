@@ -1,4 +1,3 @@
-// src/features/settings/components/ProfileSettings/ProfileSettings.jsx
 import React, { useState, useEffect } from 'react';
 import { 
     Form, Input, Button, Row, Col, DatePicker, Select, 
@@ -17,33 +16,28 @@ const ProfileSettings = () => {
     const [form] = Form.useForm();
     
     const [loading, setLoading] = useState(true); 
-    const [submitting, setSubmitting] = useState(false); // State loading cho nút Update
+    const [submitting, setSubmitting] = useState(false);
     
-    // Dữ liệu dùng để hiển thị UI tĩnh (Avatar, Tên chào)
     const [userData, setUserData] = useState(null); 
     const [currentAvatarUrl, setCurrentAvatarUrl] = useState(null); 
 
-    // --- 1. LOAD DỮ LIỆU ---
     useEffect(() => {
         const fetchProfile = async () => {
             setLoading(true);
             try {
                 const user = await adminService.getProfile();
                 
-                // Chuẩn bị dữ liệu cho Form
                 const formData = {
                     username: user.username,
                     email: user.email,
-                    // Lưu ý: Key này phải khớp với 'name' trong Form.Item
                     phone: user.phoneNumber, 
                     dob: user.dob ? dayjs(user.dob) : null, 
                     gender: user.gender,
                 };
 
-                setUserData(user); // Lưu user gốc để hiển thị tên chào
+                setUserData(user);
                 setCurrentAvatarUrl(user.avatarUrl);
                 
-                // Fill dữ liệu vào Form
                 form.setFieldsValue(formData);
                 
             } catch (error) {
@@ -56,7 +50,6 @@ const ProfileSettings = () => {
         fetchProfile();
     }, [form, message]); 
 
-    // --- 2. UPLOAD AVATAR ---
     const handleUploadChange = async (info) => {
         if (info.file.status === 'uploading') return;
         if (info.file.status === 'done') {
@@ -74,45 +67,34 @@ const ProfileSettings = () => {
         onSuccess(); 
     };
 
-    // --- 3. SUBMIT FORM (LOGIC TRỰC TIẾP, KHÔNG MODAL) ---
     const onFinish = async (values) => {
         console.log("LOG: User bấm nút Update. Values:", values);
         
-        // Bắt đầu hiệu ứng loading trên nút
         setSubmitting(true);
 
         try {
-            // Chuẩn bị payload gửi Service
             await new Promise(resolve => setTimeout(resolve, 800));
             const payload = {
                 gender: values.gender,
-                phoneNumber: values.phone, // Lấy từ input name="phone"
+                phoneNumber: values.phone,
                 dob: values.dob ? values.dob.toISOString() : null, 
             };
             
-            // Gọi Service update
             await adminService.updateProfile(payload);
             
-            // Nếu chạy đến đây là thành công
             message.success('Cập nhật thành công!');
             
-            // Cập nhật lại tên hiển thị nếu cần (dù ở đây ta dùng username nên ko đổi)
-            // setUserData({ ...userData, ...payload }); 
-
         } catch (error) {
             console.error('Lỗi Update:', error);
             
-            // Hiển thị lỗi chi tiết từ PocketBase
             let errorMessage = 'Cập nhật thất bại.';
             if (error.response?.data?.data) {
                 const errors = error.response.data.data;
                 const keys = Object.keys(errors);
-                // Ví dụ: phone_number: Must be unique
                 if (keys.length > 0) errorMessage = `${keys[0]}: ${errors[keys[0]].message}`; 
             }
             message.error(errorMessage);
         } finally {
-            // Tắt loading dù thành công hay thất bại
             setSubmitting(false);
         }
     };
@@ -120,7 +102,6 @@ const ProfileSettings = () => {
         console.log('Failed:', errorInfo);
         message.error('Vui lòng kiểm tra lại thông tin nhập!');
     };
-    // --- 4. RENDER ---
     if (loading) {
         return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
     }
@@ -133,7 +114,6 @@ const ProfileSettings = () => {
                 onFinish={onFinish}
                 onFinishFailed={onFinishFailed}
             >
-                {/* HEAD & AVATAR */}
                 <Flex justify="space-between" align="top" style={{ marginBottom: '24px' }}>
                     <Title level={4} style={{ margin: 0 }}>Chào, {userData?.username || 'User'}</Title>
                     <Text type="secondary">{dayjs().format('DD/MM/YYYY')}</Text> 
@@ -148,7 +128,6 @@ const ProfileSettings = () => {
                     </div>
                 </div>
                 
-                {/* FORM FIELDS */}
                 <Row gutter={24}>
                     <Col xs={24} md={12}>
                         <Form.Item name="username" label="Username">
@@ -187,7 +166,6 @@ const ProfileSettings = () => {
                 </Row>
                 
                 <Form.Item style={{ marginTop: '24px' }}>
-                    {/* Nút bấm có trạng thái loading trực tiếp */}
                     <Button type="primary" htmlType="submit" loading={submitting}>
                         Update Profile
                     </Button>

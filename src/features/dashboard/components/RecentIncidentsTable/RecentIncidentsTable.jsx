@@ -1,4 +1,3 @@
-// src/features/dashboard/components/RecentIncidentsTable/RecentIncidentsTable.jsx
 import React, { useEffect, useState } from 'react';
 import { Card, Table, Tag, Typography, Tabs, Space } from 'antd';
 import { 
@@ -15,7 +14,6 @@ import styles from './RecentIncidentsTable.module.css';
 
 const { Title, Text } = Typography;
 
-// --- MAPPING MÀU SẮC ---
 const SEVERITY_COLORS = {
   'high': 'error',
   'medium': 'warning',
@@ -34,7 +32,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
   const [pickups, setPickups] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch dữ liệu song song
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
@@ -49,7 +46,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
     fetchData();  
   }, [refreshKey]);
 
-  // 2. Cấu hình cột cho Bảng Sự Cố
   const incidentColumns = [
     {
       title: 'MỨC ĐỘ',
@@ -69,7 +65,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
       render: (text, record) => (
         <Space direction="vertical" size={0}>
           <Text strong>{text}</Text>
-          {/* Hiện biển số xe liên quan */}
           <Space style={{ fontSize: '12px', color: '#888' }}>
             <CarOutlined /> {record.meta}
           </Space>
@@ -96,7 +91,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
     },
   ];
 
-  // 3. Cấu hình cột cho Bảng Yêu Cầu Đón
   const pickupColumns = [
     {
       title: 'KHÁCH HÀNG',
@@ -142,7 +136,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
     },
   ];
 
-  // 4. Cấu hình Tabs
   const tabItems = [
     {
       key: '1',
@@ -158,7 +151,7 @@ const RecentIncidentsTable = ({ refreshKey }) => {
           pagination={false} 
           loading={loading}
           rowKey="id"
-          size="small" // Bảng nhỏ gọn hơn
+          size="small"
         />
       ),
     },
@@ -186,7 +179,6 @@ const RecentIncidentsTable = ({ refreshKey }) => {
     <Card
       className={styles.card}
       bordered={false}
-      // Bỏ title cứng, chuyển sang dùng Tabs làm tiêu đề
     >
       <Tabs 
         defaultActiveKey="1" 

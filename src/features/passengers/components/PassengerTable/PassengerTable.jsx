@@ -2,9 +2,6 @@ import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './PassengerTable.module.css';
-
-// 1. TỪ ĐIỂN TRẠNG THÁI (Anh -> Việt)
-// Giúp hiển thị tiếng Việt đẹp mắt thay vì raw data từ DB
 const STATUS_MAP = {
   'active': { text: 'HOẠT ĐỘNG', color: 'green' },
   'blocked': { text: 'ĐÃ KHÓA', color: 'red' },
@@ -22,7 +19,6 @@ const PassengerTable = ({
 
   const columns = useMemo(
     () => [
-      // --- CỘT 1: TÊN HÀNH KHÁCH ---
       { 
         title: 'TÊN HÀNH KHÁCH', 
         dataIndex: 'name', 
@@ -30,7 +26,6 @@ const PassengerTable = ({
         render: (text) => <span style={{ fontWeight: 600 }}>{text}</span>
       },
 
-      // --- CỘT 2: EMAIL ---
       { 
         title: 'EMAIL', 
         dataIndex: 'email', 
@@ -38,7 +33,6 @@ const PassengerTable = ({
         render: (email) => email || <span style={{ color: '#ccc' }}>--</span>
       },
 
-      // --- CỘT 3: SỐ ĐIỆN THOẠI ---
       { 
         title: 'SỐ ĐIỆN THOẠI', 
         dataIndex: 'phone', 
@@ -46,7 +40,6 @@ const PassengerTable = ({
         render: (phone) => phone || <span style={{ color: '#ccc' }}>--</span>
       },
 
-      // --- CỘT 4: TRẠNG THÁI (Dùng Map để dịch) ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -62,7 +55,6 @@ const PassengerTable = ({
         },
       },
 
-      // --- CỘT 5: HÀNH ĐỘNG ---
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',

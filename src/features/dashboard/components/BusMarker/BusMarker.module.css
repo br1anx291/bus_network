@@ -1,39 +1,34 @@
 .markerButton {
-  /* Style cho <button> - Reset mặc định */
+
   background: none;
   border: none;
   padding: 0;
   cursor: pointer;
-  outline: none; /* Bỏ viền xanh khi focus/click */
+  outline: none;
 
-  /* Căn giữa icon */
   display: flex;
   align-items: center;
   justify-content: center;
 
-  /* Hiệu ứng */
-  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); /* Hiệu ứng nảy nhẹ */
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
 }
 
 .markerButton:hover {
-  transform: scale(1.2); /* Phóng to lên 20% */
-  z-index: 10; /* Nổi lên trên cùng */
-}
+  transform: scale(1.2); 
+  z-index: 10; 
+} l
 
 .markerButton:active {
-  transform: scale(0.95); /* Nhún xuống khi click */
+  transform: scale(0.95);
 }
 
 .markerImage {
-  /* Style cho <img> */
-  width: 40px; /* Điều chỉnh kích thước vừa vặn hơn cho Mini Map */
+  width: 40px; 
   height: 40px;
   object-fit: contain;
   
-  /* Đổ bóng giúp icon tách biệt khỏi nền bản đồ */
   filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.4));
 
-  /* Ngăn kéo thả ảnh */
   user-select: none;
   -webkit-user-drag: none;
 }

@@ -1,4 +1,3 @@
-// src/features/dashboard/components/BusMarker/BusMarker.jsx
 import React from 'react';
 import { Marker } from 'react-map-gl';
 import busMarker from '../../../../assets/bus-marker.png'; 

@@ -10,17 +10,17 @@ import {
   CarOutlined, NodeIndexOutlined, HomeOutlined, CheckCircleOutlined
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation, Link } from 'react-router-dom';
-import styles from './MainLayout.module.css';
 import { authService } from '~/services/authService'; 
-import dayjs from 'dayjs';
-import 'dayjs/locale/vi';
-import relativeTime from 'dayjs/plugin/relativeTime';
 import { useNotification } from '~/contexts/NotificationContext';
 import { vehicleService } from '~/services/vehicleService'; 
 import { routeService } from '~/services/routeService';     
 import { stationService } from '~/services/stationService'; 
+import styles from './MainLayout.module.css';
 import debounce from 'lodash/debounce';
 import logoImg from '~/assets/bus-logo.png';
+import relativeTime from 'dayjs/plugin/relativeTime';
+import dayjs from 'dayjs';
+import 'dayjs/locale/vi';
 
 dayjs.extend(relativeTime);
 dayjs.locale('vi');
@@ -132,7 +132,6 @@ const MainLayout = () => {
     }
   };
 
-
   const debouncedSearch = useCallback(
     debounce((nextValue) => fetchSearchResults(nextValue), 500),
     [] 
@@ -147,7 +146,6 @@ const MainLayout = () => {
       navigate(option.link);
     }
   };
-
 
   const selectedKeys = [location.pathname];
   const openKeys = [`/${location.pathname.split('/')[1]}`];

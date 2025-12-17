@@ -1,4 +1,3 @@
-// src/features/incidents/components/IncidentTable/IncidentTable.jsx
 import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm, Tooltip, Typography } from 'antd';
 import { 
@@ -14,9 +13,6 @@ import styles from './IncidentTable.module.css';
 
 const { Text } = Typography;
 
-// --- 1. ĐỊNH NGHĨA MAPPING (CONSTANTS) ---
-// Không dùng import từ Mock Data nữa, định nghĩa cứng tại đây để độc lập
-
 const CATEGORY_MAP = {
   'technical': { text: 'Kỹ thuật / Xe', color: 'blue' },
   'personnel': { text: 'Nhân sự',       color: 'purple' },
@@ -25,15 +21,15 @@ const CATEGORY_MAP = {
 };
 
 const SEVERITY_MAP = {
-  'low':    { text: 'Thấp',      color: 'success' },    // Xanh lá
-  'medium': { text: 'Trung bình',color: 'warning' },    // Vàng
-  'high':   { text: 'CAO',       color: 'error' },      // Đỏ (Nguy hiểm)
+  'low':    { text: 'Thấp',      color: 'success' },    
+  'medium': { text: 'Trung bình',color: 'warning' },    
+  'high':   { text: 'CAO',       color: 'error' },      
 };
 
 const STATUS_MAP = {
   'pending':    { text: 'Mới tiếp nhận', color: 'default' },
-  'processing': { text: 'Đang xử lý',    color: 'processing' }, // Xanh dương
-  'resolved':   { text: 'Đã giải quyết', color: 'success' },    // Xanh lá
+  'processing': { text: 'Đang xử lý',    color: 'processing' }, 
+  'resolved':   { text: 'Đã giải quyết', color: 'success' },    
 };
 
 const IncidentTable = ({ 
@@ -41,17 +37,15 @@ const IncidentTable = ({
   loading, 
   pagination, 
   onTableChange,
-  onEdit,    // Thay thế onView/onMarkComplete bằng onEdit
+  onEdit,    
   onDelete 
 }) => {
 
   const columns = useMemo(
     () => [
-      // 1. Tiêu đề & Mô tả (Gộp chung cho gọn)
 { 
         title: 'SỰ CỐ', 
         key: 'info',
-        // [QUAN TRỌNG] Đặt chiều rộng cố định cho cột này
         width: 300, 
         render: (_, record) => (
           <div style={{ display: 'flex', flexDirection: 'column', maxWidth: '280px' }}>
@@ -59,13 +53,12 @@ const IncidentTable = ({
                {record.title}
             </Text>
             
-            {/* Logic cắt dòng thông minh của Ant Design */}
             <Text 
               type="secondary" 
               style={{ fontSize: '12px' }} 
               ellipsis={{ 
-                tooltip: record.description, // Hiện full khi rê chuột
-                rows: 2 // Chỉ cho hiện tối đa 2 dòng
+                tooltip: record.description,
+                rows: 2 
               }}
             >
               {record.description}
@@ -74,7 +67,6 @@ const IncidentTable = ({
         )
       },
 
-      // 2. Phân loại
       { 
         title: 'PHÂN LOẠI', 
         dataIndex: 'category', 
@@ -86,7 +78,6 @@ const IncidentTable = ({
         }
       },
 
-      // 3. [MỚI] Mức độ nghiêm trọng
       {
         title: 'MỨC ĐỘ',
         dataIndex: 'severity',
@@ -103,13 +94,11 @@ const IncidentTable = ({
         }
       },
 
-      // 4. Liên quan (Xe hoặc Tài xế)
       { 
         title: 'LIÊN QUAN', 
         key: 'related',
         render: (_, record) => (
           <Space direction="vertical" size={0}>
-            {/* Nếu có liên kết xe */}
             {record.busId && (
               <Space>
                 <CarOutlined style={{ color: '#1890ff' }} /> 
@@ -117,7 +106,6 @@ const IncidentTable = ({
               </Space>
             )}
             
-            {/* Nếu có liên kết tài xế */}
             {record.driverId && (
               <Space>
                 <UserOutlined style={{ color: '#52c41a' }} />
@@ -125,13 +113,11 @@ const IncidentTable = ({
               </Space>
             )}
 
-            {/* Nếu không có gì */}
             {!record.busId && !record.driverId && <span style={{ color: '#ccc' }}>---</span>}
           </Space>
         )
       },
 
-      // 5. Thời gian báo cáo
       { 
         title: 'THỜI GIAN', 
         dataIndex: 'createdAt', 
@@ -143,7 +129,6 @@ const IncidentTable = ({
         )
       },
 
-      // 6. Trạng thái
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -154,7 +139,6 @@ const IncidentTable = ({
         },
       },
 
-      // 7. Hành động (Edit / Delete)
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',

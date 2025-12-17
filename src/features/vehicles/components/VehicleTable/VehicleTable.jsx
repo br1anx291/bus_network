@@ -1,10 +1,8 @@
-// src/features/vehicles/components/VehicleTable/VehicleTable.jsx
 import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm,Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './VehicleTable.module.css';
 
-// 1. TỪ ĐIỂN TRẠNG THÁI (Map từ Anh -> Việt)
 const STATUS_MAP = {
   'active': { text: 'ĐANG CHẠY', color: 'green' },
   'maintenance': { text: 'BẢO TRÌ', color: 'orange' },
@@ -21,10 +19,8 @@ const VehicleTable = ({
   onDelete 
 }) => {
 
-  // Định nghĩa cột
   const columns = useMemo(
     () => [
-      // --- CỘT 1: BIỂN SỐ ---
       { 
         title: 'BIỂN SỐ XE', 
         dataIndex: 'plate', 
@@ -32,7 +28,6 @@ const VehicleTable = ({
         render: (text) => <span style={{ fontWeight: 'bold' }}>{text}</span>
       },
 
-      // --- CỘT 2: THÔNG TIN XE (Gộp Model + Capacity) ---
       {
         title: 'THÔNG TIN XE',
         key: 'info',
@@ -44,7 +39,6 @@ const VehicleTable = ({
         )
       },
 
-      // --- CỘT 3: TÀI XẾ ---
       { 
         title: 'TÀI XẾ', 
         dataIndex: 'driverName', 
@@ -56,25 +50,22 @@ const VehicleTable = ({
         )
       },
 
-      // --- CỘT 4: TUYẾN ĐANG CHẠY ---
       { 
         title: 'ĐANG Ở TUYẾN', 
         dataIndex: 'routeName', 
         key: 'routeName',
         render: (text) => (
           text !== 'Chưa phân tuyến' 
-            ? <Tag color="blue">{text}</Tag> // Nếu có tuyến -> Tag xanh
-            : <span style={{ color: '#ccc' }}>--</span> // Không có -> Gạch ngang
+            ? <Tag color="blue">{text}</Tag>
+            : <span style={{ color: '#ccc' }}>--</span>
         )
       },
 
-      // --- CỘT 5: TRẠNG THÁI (Dùng STATUS_MAP) ---
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
         key: 'status',
         render: (status) => {
-          // Lấy config màu và chữ, nếu không có thì lấy default
           const config = STATUS_MAP[status] || STATUS_MAP['default'];
           return (
             <Tag color={config.color}>
@@ -85,13 +76,11 @@ const VehicleTable = ({
       },
 
 
-      // --- CỘT 7: HÀNH ĐỘNG ---
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
         render: (_, record) => (
           <Space size="middle">
-             {/* 2. Nút Sửa thông tin */}
             <Tooltip title="Sửa thông tin">
                 <Button 
                   type="primary" ghost
@@ -100,7 +89,6 @@ const VehicleTable = ({
                 />
             </Tooltip>
 
-            {/* 3. Nút Xóa */}
             <Tooltip title="Xóa xe">
                 <Popconfirm
                   title="Bạn chắc chắn muốn xóa xe này?"
@@ -124,7 +112,7 @@ const VehicleTable = ({
       columns={columns}
       dataSource={data}
       loading={loading}
-      rowKey="id" // Quan trọng để React không báo lỗi thiếu Key
+      rowKey="id"
       pagination={{
         ...pagination,
         showTotal: (total, range) => `Hiển thị ${range[0]}-${range[1]} trên ${total} kết quả`,

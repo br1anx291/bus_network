@@ -6,11 +6,9 @@ import { routeService } from '~/services/routeService';
 const RouteStationModal = ({ open, onClose, editingRoute }) => {
   const [loading, setLoading] = useState(false);
   
-  // Dữ liệu cho Transfer
-  const [allStations, setAllStations] = useState([]); // Bên trái (Nguồn)
-  const [targetKeys, setTargetKeys] = useState([]);   // Bên phải (Đích - ID các trạm đã chọn)
+  const [allStations, setAllStations] = useState([]);
+  const [targetKeys, setTargetKeys] = useState([]);
 
-  // 1. Load dữ liệu khi mở Modal
   useEffect(() => {
     if (open && editingRoute) {
       fetchData();
@@ -20,21 +18,19 @@ const RouteStationModal = ({ open, onClose, editingRoute }) => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Gọi song song: Lấy TẤT CẢ trạm & Lấy trạm CỦA TUYẾN này
       const [allRes, assignedIds] = await Promise.all([
-        stationService.getAll(1, 1000), // Lấy max 1000 trạm
+        stationService.getAll(1, 1000),
         routeService.getStationsByRoute(editingRoute.id)
       ]);
 
-      // Map dữ liệu sang format của Antd Transfer
       const formattedStations = (allRes.data || []).map(s => ({
-        key: s.id,          // ID trạm (bắt buộc)
-        title: s.name,      // Tên hiển thị
-        description: s.address // Mô tả phụ
+        key: s.id,
+        title: s.name,
+        description: s.address
       }));
 
       setAllStations(formattedStations);
-      setTargetKeys(assignedIds); // Set các trạm đã gán sang bên phải
+      setTargetKeys(assignedIds); 
 
     } catch (error) {
       message.error("Lỗi tải dữ liệu trạm");
@@ -43,16 +39,13 @@ const RouteStationModal = ({ open, onClose, editingRoute }) => {
     }
   };
 
-  // 2. Xử lý khi người dùng chuyển trạm qua lại
   const handleChange = (newTargetKeys) => {
     setTargetKeys(newTargetKeys);
   };
 
-  // 3. Xử lý Lưu
   const handleSave = async () => {
     setLoading(true);
     try {
-      // Gọi service cập nhật
       await routeService.updateRouteStations(editingRoute.id, targetKeys);
       message.success(`Đã cập nhật trạm cho tuyến ${editingRoute.code}`);
       onClose();
@@ -82,7 +75,7 @@ const RouteStationModal = ({ open, onClose, editingRoute }) => {
             titles={['Kho Trạm', 'Trạm Đã Chọn']}
             targetKeys={targetKeys}
             onChange={handleChange}
-            render={(item) => item.title} // Hiển thị tên trạm
+            render={(item) => item.title}
             listStyle={{
               width: 350,
               height: 400,

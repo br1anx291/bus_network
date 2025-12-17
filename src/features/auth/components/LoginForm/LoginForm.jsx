@@ -3,35 +3,30 @@ import { Form, Input, Button, Typography, Checkbox, Alert, Flex } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { Link, useNavigate } from 'react-router-dom';
 import styles from './LoginForm.module.css';
-import { authService } from '../../../../services/authService';
+import { authService } from '~/services/authService';
 const { Title, Text } = Typography;
 
 const LoginForm = () => {
-// --- STATE ĐỂ XỬ LÝ LOADING VÀ LỖI ---
-  const [isLoading, setIsLoading] = useState(false); // <-- MỚI
-  const [error, setError] = useState(null); // <-- MỚI
-  const navigate = useNavigate(); // <-- MỚI: Hook để điều hướng
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState(null); 
+  const navigate = useNavigate();
 
-// --- HÀM "BÓP CÒ" ---
   const onFinish = async (values) => {
-    setError(null); // Xóa lỗi cũ
-    setIsLoading(true); // Bắt đầu tải
+    setError(null);
+    setIsLoading(true);
 
     try {
-      // Gọi "nòng súng", bất kể là mock hay thật
       await authService.login(values.email, values.password);
 
-      // THÀNH CÔNG! (service đã tự lưu user vào store)
       console.log('Đăng nhập thành công, điều hướng...');
-      navigate('/'); // <-- MỚI: Đá người dùng về trang Dashboard
+      navigate('/');
 
     } catch (err) {
-      // THẤT BẠI! (mockLogin() ném ra lỗi 'Sai mật khẩu')
       console.error('Lỗi đăng nhập:', err.message);
-      setError(err.message || 'Đã có lỗi xảy ra'); // <-- MỚI: Hiển thị lỗi
+      setError(err.message || 'Đã có lỗi xảy ra');
 
     } finally {
-      setIsLoading(false); // <-- MỚI: Luôn luôn tắt loading
+      setIsLoading(false);
     }
   };
 
@@ -44,14 +39,13 @@ const LoginForm = () => {
         Bạn chưa có tài khoản? <Link to="/register">Đăng ký</Link>
       </Text>
 
-      {/* --- HIỂN THỊ LỖI NẾU CÓ --- */}
       {error && (
         <Alert
           message={error}
           type="error"
           showIcon
           closable
-          onClose={() => setError(null)} // <-- MỚI: Cho phép tắt thông báo lỗi
+          onClose={() => setError(null)}
           style={{ marginBottom: '20px' }}
         />
       )}
@@ -61,7 +55,6 @@ const LoginForm = () => {
         onFinish={onFinish}
         layout="vertical"
         requiredMark={false}
-        // <-- MỚI: Vô hiệu hóa form khi đang loading
         disabled={isLoading} 
       >
         <Form.Item
@@ -71,7 +64,7 @@ const LoginForm = () => {
         >
           <Input 
             prefix={<UserOutlined />} 
-            placeholder="Email (admin@bus.com)" // Gợi ý user/pass
+            placeholder="Email (admin@bus.com)" 
             size="large" 
           />
         </Form.Item>
@@ -83,7 +76,7 @@ const LoginForm = () => {
         >
           <Input.Password 
             prefix={<LockOutlined />} 
-            placeholder="Mật khẩu (admin123)" // Gợi ý user/pass
+            placeholder="Mật khẩu (admin123)" 
             size="large"
           />
         </Form.Item>
@@ -103,7 +96,6 @@ const LoginForm = () => {
             htmlType="submit" 
             className={styles.loginButton} 
             size="large"
-            // <-- MỚI: Thêm trạng thái loading cho nút
             loading={isLoading} 
           >
             Đăng nhập

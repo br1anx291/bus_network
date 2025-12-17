@@ -1,11 +1,8 @@
-// src/features/admins/components/AdminFormModal/AdminFormModal.jsx
 import React, { useEffect, useState } from 'react';
 import { Modal, Form, Input, Select, message, Row, Col } from 'antd'; 
 
-// Import Service
 import { adminService } from '~/services/adminService'; 
 
-// Định nghĩa Options cố định (Chuẩn với Service)
 const ROLE_OPTIONS = [
   { value: 'superadmin', label: 'Quản trị viên (Super Admin)' },
   { value: 'manager',    label: 'Quản lý (Manager)' },
@@ -18,23 +15,19 @@ const AdminFormModal = ({ open, onClose, onSuccess, editingAdmin }) => {
 
   const isEditing = !!editingAdmin;
 
-  // 1. Đổ dữ liệu vào form
   useEffect(() => {
     if (open) {
       if (isEditing) {
-        // Khi sửa: Load data cũ
         form.setFieldsValue({
           username: editingAdmin.username,
           email: editingAdmin.email,
           phoneNumber: editingAdmin.phoneNumber,
           role: editingAdmin.role,
-          // Không load password
         });
       } else {
-        // Khi thêm mới: Reset form và set giá trị mặc định
         form.resetFields();
         form.setFieldsValue({
-          role: 'staff', // Mặc định là nhân viên
+          role: 'staff', 
         });
       }
     }
@@ -46,21 +39,18 @@ const AdminFormModal = ({ open, onClose, onSuccess, editingAdmin }) => {
       setIsLoading(true);
 
       if (isEditing) {
-        // GỌI UPDATE
         await adminService.update(editingAdmin.id, values);
         message.success('Cập nhật thông tin thành công!');
       } else {
-        // GỌI CREATE
         await adminService.create(values);
         message.success('Tạo người dùng mới thành công!');
       }
 
-      onSuccess(); // Refresh bảng
-      onClose();   // Đóng modal
+      onSuccess(); 
+      onClose();  
 
     } catch (error) {
       console.error('Lỗi form:', error);
-      // Xử lý lỗi trả về từ PocketBase (thường là validation error)
       const errorMsg = error.response?.data?.message || error.message || 'Đã có lỗi xảy ra';
       message.error(errorMsg);
     } finally {
@@ -79,7 +69,6 @@ return (
     >
       <Form form={form} layout="vertical" style={{ marginTop: '20px' }}>
         
-        {/* [THAY ĐỔI] Chỉ còn Username, không còn Name */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -105,7 +94,6 @@ return (
           </Col>
         </Row>
 
-        {/* HÀNG 2: EMAIL + SĐT */}
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
@@ -127,7 +115,6 @@ return (
           </Col>
         </Row>
 
-        {/* MẬT KHẨU (Chỉ hiện khi tạo mới) */}
         {!isEditing && (
           <div style={{ background: '#f5f5f5', padding: '10px', borderRadius: '6px' }}>
              <p style={{marginBottom: 5, fontWeight: 500}}>Mật khẩu:</p>

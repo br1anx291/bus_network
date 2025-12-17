@@ -1,11 +1,8 @@
-// src/pages/IncidentPage/IncidentPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Flex, Typography, message, Button } from 'antd';
 import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
 
-// 1. IMPORT COMPONENT
 import IncidentTable from '~/features/incidents/components/IncidentTable/IncidentTable';
-// [THAY ĐỔI] Dùng FormModal thay vì ViewModal để có thể Thêm/Sửa
 import IncidentFormModal from '~/features/incidents/components/IncidentFormModal/IncidentFormModal'; 
 
 import { incidentService } from '~/services/incidentService';
@@ -14,16 +11,14 @@ import styles from './IncidentPage.module.css';
 const { Title } = Typography;
 
 const IncidentPage = () => {
-  // --- STATE ---
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [pagination, setPagination] = useState({
     current: 1,
-    pageSize: 10, // Tăng lên 10 cho chuẩn
+    pageSize: 10,
     total: 0,
   });
 
-  // --- 1. FETCH DATA ---
   const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
     setLoading(true);
     try {
@@ -54,7 +49,6 @@ const IncidentPage = () => {
     fetchData(newPagination.current, newPagination.pageSize);
   };
 
-  // --- 2. XÓA SỰ CỐ ---
   const handleDelete = async (id) => {
     try {
       await incidentService.delete(id);
@@ -65,7 +59,6 @@ const IncidentPage = () => {
     }
   };
 
-  // --- 3. MODAL STATE (THÊM / SỬA) ---
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingIncident, setEditingIncident] = useState(null);
 
@@ -74,7 +67,6 @@ const IncidentPage = () => {
     setIsModalOpen(true);
   };
 
-  // Hàm này sẽ được gọi khi bấm nút Sửa ở bảng
   const handleOpenEditModal = (record) => {
     setEditingIncident(record);
     setIsModalOpen(true);
@@ -86,12 +78,11 @@ const IncidentPage = () => {
 
   const handleModalSuccess = () => {
     handleCloseModal();
-    fetchData(); // Tải lại dữ liệu mới nhất
+    fetchData();
   };
 
   return (
     <div className={styles.pageContainer}>
-      {/* --- HEADER --- */}
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
           Quản lý Sự cố
@@ -117,19 +108,16 @@ const IncidentPage = () => {
         </Flex>
       </Flex>
 
-      {/* --- BẢNG SỰ CỐ --- */}
       <IncidentTable 
         data={data}
         loading={loading}
         pagination={pagination}
         onTableChange={handleTableChange}
-        
-        // Truyền các hành động xuống Table
+
         onEdit={handleOpenEditModal}
         onDelete={handleDelete}
       />
 
-      {/* --- MODAL FORM --- */}
       <IncidentFormModal
         open={isModalOpen}
         onClose={handleCloseModal}

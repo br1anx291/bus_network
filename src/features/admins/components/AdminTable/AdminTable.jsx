@@ -1,22 +1,18 @@
-// src/features/admins/components/AdminTable/AdminTable.jsx
 import React, { useMemo } from 'react';
 import { Table, Tag, Space, Button, Popconfirm, Tooltip } from 'antd';
 import { EditOutlined, DeleteOutlined, PhoneOutlined } from '@ant-design/icons';
 import styles from './AdminTable.module.css';
 
-// --- ĐỊNH NGHĨA MAPPING HIỂN THỊ (CONSTANTS) ---
 const ROLE_CONFIG = {
   'superadmin': { text: 'Quản trị viên', color: 'volcano' },
   'manager':    { text: 'Quản lý',       color: 'geekblue' },
   'staff':      { text: 'Nhân viên',     color: 'green' },
-  // Default
   'default':    { text: 'Khác',          color: 'default' }
 };
 
 const STATUS_CONFIG = {
-  'active':  { text: 'Đã xác thực',   color: 'success' }, // Xanh lá
-  'pending': { text: 'Chưa xác thực', color: 'warning' }, // Vàng cam
-  // Default
+  'active':  { text: 'Đã xác thực',   color: 'success' }, 
+  'pending': { text: 'Chưa xác thực', color: 'warning' }, 
   'default': { text: 'Không rõ',      color: 'default' }
 };
 
@@ -31,7 +27,6 @@ const AdminTable = ({
 
   const columns = useMemo(
     () => [
-      // 1. Tên hiển thị
       { 
         title: 'TÊN ADMIN', 
         dataIndex: 'username', 
@@ -39,14 +34,12 @@ const AdminTable = ({
         render: (text) => <span style={{ fontWeight: 500 }}>{text}</span>
       },
       
-      // 2. Email
       { 
         title: 'EMAIL', 
         dataIndex: 'email', 
         key: 'email' 
       },
 
-      // 3. [CỘT MỚI] Số điện thoại
       {
         title: 'SỐ ĐIỆN THOẠI',
         dataIndex: 'phoneNumber',
@@ -59,7 +52,6 @@ const AdminTable = ({
         ) : <span style={{ color: '#ccc' }}>---</span>
       },
 
-      // 4. Vai trò (Có map màu + Tiếng Việt)
       {
         title: 'VAI TRÒ',
         dataIndex: 'role',
@@ -70,7 +62,6 @@ const AdminTable = ({
         },
       },
 
-      // 5. Trạng thái (Map màu + Tiếng Việt)
       {
         title: 'TRẠNG THÁI',
         dataIndex: 'status',
@@ -81,7 +72,6 @@ const AdminTable = ({
         },
       },
 
-      // 6. Hành động
       {
         title: 'HÀNH ĐỘNG',
         key: 'action',
@@ -90,7 +80,7 @@ const AdminTable = ({
           <Space size="middle">
             <Tooltip title="Sửa thông tin">
               <Button 
-                type="primary" ghost // Nút viền xanh, nền trắng nhìn nhẹ nhàng hơn
+                type="primary" ghost
                 icon={<EditOutlined />} 
                 onClick={() => onEdit(record)} 
               />
@@ -126,7 +116,7 @@ const AdminTable = ({
       }}
       onChange={onTableChange}
       className={styles.adminTable}
-      rowKey="id" // Quan trọng: Giúp React định danh dòng
+      rowKey="id"
     />
   );
 };
