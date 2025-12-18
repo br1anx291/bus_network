@@ -14,7 +14,7 @@ const RegisterPage = () => {
       </div>
 
       <div className={styles.logoPanel}>
-        <img src={busLogo} alt="BusNetwork Logo" className={styles.logoImg} />
+        <img src={busLogo} alt="ViaFlow Logo" className={styles.logoImg} />
       </div>
     </div>
   );

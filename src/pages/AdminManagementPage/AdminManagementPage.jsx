@@ -86,7 +86,7 @@ const AdminManagementPage = () => {
     <div className={styles.pageContainer}>
       <Flex justify="space-between" align="center" className={styles.pageHeader}>
         <Title level={2} className={styles.pageTitle}>
-          Quản lý Người dùng
+          Quản lý Admin
         </Title>
         
         <Flex gap="small">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Layout, Menu, Input, Flex, Avatar, Dropdown, Badge, Popover, List, Typography, 
   AutoComplete, Tooltip, Empty, 
@@ -65,6 +65,14 @@ const MainLayout = () => {
   const [openNotif, setOpenNotif] = useState(false);
   const [searchOptions, setSearchOptions] = useState([]);
   const [searching, setSearching] = useState(false);
+  const [currentUser, setCurrentUser] = useState(null);
+
+  useEffect(() => {
+    const user = authService.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+    }
+  }, []);
 
   const fetchSearchResults = async (searchText) => {
     if (!searchText) {
@@ -231,8 +239,8 @@ const MainLayout = () => {
         <div>
           <Link to="/" style={{ textDecoration: 'none', display: 'block' }}>
             <div className={styles.logo} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-              <img src={logoImg} alt="BusNetwork Logo" style={{ height: '28px', width: 'auto' }} />
-              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#000000ff' }}>BusNetwork</span>
+              <img src={logoImg} alt="ViaFlow Logo" style={{ height: '28px', width: 'auto' }} />
+              <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#000000ff' }}>ViaFlow</span>
             </div>
           </Link>
 
@@ -291,7 +299,7 @@ const MainLayout = () => {
                 </Tooltip>
               )}
 
-              <span className={styles.userName}>Chào, Tuyết My</span>
+              <span className={styles.userName}>Chào, {currentUser ? currentUser.name : 'user'}</span>
               
               <Dropdown menu={{ items: userMenuItems, onClick: handleUserMenuClick }} trigger={['click']}>
                 <Avatar className={styles.userAvatar} icon={<UserOutlined />} style={{cursor: 'pointer'}}/>

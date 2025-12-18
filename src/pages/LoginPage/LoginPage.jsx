@@ -10,10 +10,10 @@ const LoginPage = () => {
   return (
     <div className={styles.loginPageContainer}>
       <div className={styles.logoPanel}>
-        <img src={busLogo} alt="BusNetwork Logo" className={styles.logoImg} />
+        <img src={busLogo} alt="ViaFlow Logo" className={styles.logoImg} />
         <div className={styles.logoTextWrapper}>
           <Title level={1} className={styles.logoText}>
-            BusNetwork
+            ViaFlow
           </Title>
         </div>
       </div>

@@ -132,9 +132,35 @@ const logout = () => {
   useAuthStore.getState().logout();
   console.log('Đã đăng xuất khỏi hệ thống!');
 };
+const getCurrentUser = () => {
+  if (USE_MOCK_API) {
+    return {
+       id: 'u1',
+       name: 'Tuyết My (Admin)',
+       email: 'admin@bus.com',
+       role: 'admin',
+       avatar: 'https://i.pravatar.cc/150?img=32'
+    };
+  }
+
+  const model = pb.authStore.model;
+  
+  if (!model) return null;
+
+  return {
+    id: model.id,
+    name: model.name || model.username || model.email, 
+    email: model.email,
+    role: model.role || 'user',
+    avatar: model.avatar 
+      ? `${pb.baseUrl}/api/files/${model.collectionId}/${model.id}/${model.avatar}` 
+      : null
+  };
+};
 
 export const authService = {
   login,
   logout,
   register,
+  getCurrentUser
 };
