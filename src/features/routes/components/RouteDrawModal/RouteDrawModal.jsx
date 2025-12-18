@@ -24,58 +24,91 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
     });
   }, []);
 
-  const renderRouteData = useCallback((mapInstance, drawInstance, routeData) => {
-    if (!mapInstance || !drawInstance) return;
+  const ensureLngLat = (coord) => {
 
-    try {
-      drawInstance.deleteAll();
-
-      if (!routeData?.path) return;
-
-      let coordsToDraw = [];
-      const rawPath = routeData.path;
-
-      if (Array.isArray(rawPath)) {
-        coordsToDraw = rawPath;
-      } else if (typeof rawPath === 'string') {
-        try {
-          coordsToDraw = JSON.parse(rawPath);
-        } catch (e) {
-          console.error("Lỗi parse JSON:", e);
-          return;
-        }
-      }
-
-      if (coordsToDraw.length === 0) return;
-
-      const feature = {
-        type: 'Feature',
-        properties: {},
-        geometry: {
-          type: 'LineString',
-          coordinates: coordsToDraw
-        }
-      };
-
-      drawInstance.add(feature);
-
-      setTimeout(() => {
-        try { drawInstance.changeMode('simple_select'); } catch (e) {}
-      }, 50);
-
-      if (window.mapboxgl) {
-        const bounds = coordsToDraw.reduce((bounds, coord) => {
-          return bounds.extend(coord);
-        }, new window.mapboxgl.LngLatBounds(coordsToDraw[0], coordsToDraw[0]));
-
-        mapInstance.fitBounds(bounds, {
-          padding: 100,
-          duration: 1000
-        });
-      }
-    } catch (error) {
-      console.error("Lỗi khi render route:", error);
+    if (coord[0] < coord[1]) {
+        return [coord[1], coord[0]]; 
     }
+    return coord;
+  };
+
+  const renderRouteData = useCallback((mapInstance, drawInstance, routeData) => {
+      if (!mapInstance || !drawInstance) return;
+
+      try {
+        drawInstance.deleteAll();
+        if (!routeData?.path) return;
+
+        let coordsToDraw = [];
+        const rawPath = routeData.path;
+
+        // 1. Parse JSON
+        if (Array.isArray(rawPath)) {
+          coordsToDraw = rawPath;
+        } else if (typeof rawPath === 'string') {
+          try {
+            coordsToDraw = JSON.parse(rawPath);
+          } catch (e) {
+            console.error("Lỗi parse JSON:", e);
+            return;
+          }
+        }
+
+        if (coordsToDraw.length === 0) return;
+
+        const isMultiLine = Array.isArray(coordsToDraw[0]) && Array.isArray(coordsToDraw[0][0]);
+
+        if (isMultiLine) {
+
+          coordsToDraw.forEach(segment => {
+              const fixedSegment = segment.map(point => ensureLngLat(point));
+
+              drawInstance.add({
+                  type: 'Feature',
+                  properties: {},
+                  geometry: {
+                      type: 'LineString',
+                      coordinates: fixedSegment
+                  }
+              });
+          });
+          
+          if (window.mapboxgl) {
+              const allPoints = coordsToDraw.flat().map(p => ensureLngLat(p)); 
+              const bounds = allPoints.reduce((bounds, coord) => {
+                  return bounds.extend(coord);
+              }, new window.mapboxgl.LngLatBounds(allPoints[0], allPoints[0]));
+
+              mapInstance.fitBounds(bounds, { padding: 100, duration: 1000 });
+          }
+
+        } else {
+          const fixedCoords = coordsToDraw.map(point => ensureLngLat(point));
+
+          drawInstance.add({
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              type: 'LineString',
+              coordinates: fixedCoords
+            }
+          });
+          
+          if (window.mapboxgl) {
+              const bounds = fixedCoords.reduce((bounds, coord) => {
+                return bounds.extend(coord);
+              }, new window.mapboxgl.LngLatBounds(fixedCoords[0], fixedCoords[0]));
+              mapInstance.fitBounds(bounds, { padding: 100, duration: 1000 });
+          }
+        }
+        
+        setTimeout(() => {
+          try { drawInstance.changeMode('simple_select'); } catch (e) {}
+        }, 50);
+
+      } catch (error) {
+        console.error("Lỗi khi render route:", error);
+      }
   }, []);
 
   const handleMapLoad = (evt) => {
@@ -105,7 +138,7 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
     }
   }, [editingRoute, open, renderRouteData]); 
 
-  const handleSave = () => {
+const handleSave = () => {
     if (!drawRef.current) {
       message.error("Bản đồ chưa sẵn sàng!");
       return;
@@ -114,18 +147,21 @@ const RouteDrawModal = ({ open, onClose, onSave, editingRoute }) => {
     const data = drawRef.current.getAll();
     
     if (data.features.length === 0) {
-      onSave(editingRoute.id, []);
+      // Gửi mảng rỗng nếu xóa hết
+      onSave(editingRoute.id, []); 
       return;
     }
 
-    const geometry = data.features[0].geometry;
-    if (geometry.type !== 'LineString') {
-      message.warning("Vui lòng chỉ vẽ 1 đường duy nhất!");
-      return;
-    }
+    const allPaths = [];
+    
+    data.features.forEach(feature => {
+        if (feature.geometry.type === 'LineString') {
+            allPaths.push(feature.geometry.coordinates);
+        }
+    });
 
-    onSave(editingRoute.id, geometry.coordinates);
-  };
+    onSave(editingRoute.id, allPaths);
+};
 
   return (
     <Modal

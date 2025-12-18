@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Flex, Select, Input, message, Tag } from 'antd'; // Import lại Input
+import { Flex, Select, Input, message, Tag } from 'antd';
 import Map, { Marker, Popup, NavigationControl, FullscreenControl, Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css'; 
 import { stationService } from '~/services/stationService';
@@ -10,6 +10,15 @@ import stationIcon from '~/assets/station-pin-blue.png';
 import busIcon from '~/assets/bus-marker.png';
 
 const MAPBOX_TOKEN = import.meta.env.VITE_MAPBOX_TOKEN;
+
+const ensureLngLat = (coord) => {
+  if (!Array.isArray(coord) || coord.length < 2) return coord;
+  if (coord[0] < coord[1]) {
+      return [coord[1], coord[0]]; 
+  }
+  return coord;
+};
+
 
 const isValidCoordinate = (lat, lng) => {
   const validLat = Number.isFinite(lat) && lat >= -90 && lat <= 90;
@@ -110,17 +119,6 @@ const renderPopupInfo = (item, type) => {
                {item.status === 'active' ? 'Đang chạy' : 'Bảo trì'}
              </Tag>
           </div>
-          
-          <div style={{ 
-            borderTop: '1px solid #f5f5f5', 
-            marginTop: '2px', 
-            paddingTop: '2px', 
-            fontSize: '11px', 
-            color: '#999',
-            fontStyle: 'italic',
-            textAlign: 'right'
-          }}>
-          </div>
         </div>
       </div>
     );
@@ -165,19 +163,10 @@ const MapPage = () => {
     fetchBaseData();
   }, []);
 
-const fetchBusLocations = async () => {
+  const fetchBusLocations = async () => {
     try {
       const locations = await mapService.getBusLocations();
       
-    if (locations.length > 0) {
-              console.group("🔥 DEBUG DATA XE ĐẦU TIÊN");
-              const firstBus = locations[0];
-              console.log("1. Record gốc:", firstBus);
-              console.log("2. Expand Buses:", firstBus.expand?.buses);
-              console.log("3. Expand Driver (Lớp 2):", firstBus.expand?.buses?.expand?.driver);
-              console.groupEnd();
-          }
-
       const mappedLocations = locations.map(rec => {
         const busInfo = rec.expand?.buses || {};
         const driverInfo = busInfo.expand?.driver || {};      
@@ -196,7 +185,7 @@ const fetchBusLocations = async () => {
 
       setBusLocations(mappedLocations);
     } catch (error) { console.error("Lỗi fetch bus:", error); }
-};
+  };
 
   useEffect(() => {
     fetchBusLocations();
@@ -206,24 +195,54 @@ const fetchBusLocations = async () => {
 
   const handleRouteChange = async (routeId) => {
     setSelectedRouteId(routeId);
+    
     if (!routeId) {
       setRoutePolyline(null);
       setRouteStationIds([]);
     } else {
       const selectedRoute = routes.find(r => r.id === routeId);
-      if (selectedRoute?.path?.length > 0) {
+      
+      if (selectedRoute?.path && selectedRoute.path.length > 0) {
+
+        let rawPath = selectedRoute.path;
+        if (typeof rawPath === 'string') {
+            try { rawPath = JSON.parse(rawPath); } catch(e) {}
+        }
+
+        
+        const isMultiLine = Array.isArray(rawPath[0]) && Array.isArray(rawPath[0][0]);
+        let correctedCoordinates;
+        let geometryType;
+
+        if (isMultiLine) {
+            geometryType = 'MultiLineString';
+            correctedCoordinates = rawPath.map(segment => 
+                segment.map(point => ensureLngLat(point))
+            );
+        } else {
+            geometryType = 'LineString';
+            correctedCoordinates = rawPath.map(point => ensureLngLat(point));
+        }
+
         setRoutePolyline({
           type: 'Feature',
-          geometry: { type: 'LineString', coordinates: selectedRoute.path }
+          geometry: { 
+              type: geometryType, 
+              coordinates: correctedCoordinates 
+          }
         });
+
       } else {
         setRoutePolyline(null);
         message.info("Tuyến này chưa có dữ liệu bản đồ");
       }
     }
+
     try {
-      const stationIds = await routeService.getStationsByRoute(routeId);
-      setRouteStationIds(stationIds);
+      if (routeId) {
+          const stationIds = await routeService.getStationsByRoute(routeId);
+          setRouteStationIds(stationIds);
+      }
     } catch (error) {
       console.error(error);
     }
