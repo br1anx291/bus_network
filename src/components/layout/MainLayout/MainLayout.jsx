@@ -74,7 +74,7 @@ const MainLayout = () => {
     }
   }, []);
 
-  const fetchSearchResults = async (searchText) => {
+const fetchSearchResults = async (searchText) => {
     if (!searchText) {
       setSearchOptions([]);
       return;
@@ -82,13 +82,14 @@ const MainLayout = () => {
 
     setSearching(true);
     try {
-      console.log("🔍 Đang tìm kiếm với từ khóa:", searchText);
+      // 1. Gọi API song song (Giữ nguyên logic sửa lỗi trạm ở bước trước)
       const [vehiclesRes, routesRes, stationsRes] = await Promise.all([
-        vehicleService.getAll(1, 3, { search: searchText }).catch(() => ({ data: [] })),
-        routeService.getAll(1, 3, { search: searchText }).catch(() => ({ data: [] })),
-        stationService.getAll(1, 3, { filter: `name ~ "${searchText}"` }).catch(() => ({ items: [] }))
+        vehicleService.getAll(1, 5, { search: searchText }).catch(() => ({ data: [] })),
+        routeService.getAll(1, 5, { search: searchText }).catch(() => ({ data: [] })),
+        stationService.getAll(1, 5, { search: searchText }).catch(() => ({ items: [] }))
       ]);
 
+      // 2. Map dữ liệu (Giữ nguyên)
       const vehicleOptions = (vehiclesRes.data || []).map(v => ({
         value: v.plate,
         key: `v-${v.id}`,
@@ -98,7 +99,7 @@ const MainLayout = () => {
             <Text type="secondary" style={{ fontSize: 12 }}>{v.capacity} chỗ</Text>
           </Flex>
         ),
-        link: `/van-hanh/quan-ly-xe?search=${v.plate}`,
+        link: `/van-hanh/quan-ly-xe?search=${encodeURIComponent(v.plate)}`,
       }));
 
       const routeOptions = (routesRes.data || []).map(r => ({
@@ -107,13 +108,13 @@ const MainLayout = () => {
         label: (
           <Flex justify="space-between">
             <span><NodeIndexOutlined style={{ marginRight: 8, color: '#52c41a' }} /> {r.name}</span>
-            <Text type="secondary" style={{ fontSize: 12 }}>Mã số {r.code || ''}</Text>
+            <Text type="secondary" style={{ fontSize: 12 }}>Mã {r.code || ''}</Text>
           </Flex>
         ),
-        link: `/van-hanh/quan-ly-tuyen`,
+        link: `/van-hanh/quan-ly-tuyen?search=${encodeURIComponent(r.name)}`,
       }));
 
-      const stationOptions = (stationsRes.data || []).map(s => ({
+      const stationOptions = (stationsRes.data || stationsRes.items || []).map(s => ({
         value: s.name,
         key: `s-${s.id}`,
         label: (
@@ -122,19 +123,52 @@ const MainLayout = () => {
             <Text type="secondary" style={{ fontSize: 12, maxWidth: 150 }} ellipsis>{s.address}</Text>
           </Flex>
         ),
-        link: `/van-hanh/quan-ly-tram`,
+        link: `/van-hanh/quan-ly-tram?search=${encodeURIComponent(s.name)}`,
       }));
 
+      // 3. Gộp các nhóm kết quả
       const options = [
-        ...vehicleOptions,
-        ...routeOptions,
-        ...stationOptions
-      ];
+        { 
+          label: <Text strong style={{ padding: '8px 12px', display: 'block', background: '#f5f5f5' }}>Phương tiện</Text>, 
+          options: vehicleOptions 
+        },
+        { 
+          label: <Text strong style={{ padding: '8px 12px', display: 'block', background: '#f5f5f5' }}>Tuyến đường</Text>, 
+          options: routeOptions 
+        },
+        { 
+          label: <Text strong style={{ padding: '8px 12px', display: 'block', background: '#f5f5f5' }}>Trạm dừng</Text>, 
+          options: stationOptions 
+        },
+      ].filter(group => group.options.length > 0);
 
-      setSearchOptions(options);
+      // --- LOGIC MỚI: XỬ LÝ KHI KHÔNG CÓ DỮ LIỆU ---
+      if (options.length === 0) {
+        setSearchOptions([{
+            value: 'no_data', // Giá trị unique giả
+            label: (
+                <Empty 
+                    image={Empty.PRESENTED_IMAGE_SIMPLE} 
+                    description="Không tìm thấy dữ liệu phù hợp" 
+                    style={{ padding: '10px 0' }}
+                />
+            ),
+            disabled: true, // Không cho click vào dòng này
+            style: { cursor: 'default' }
+        }]);
+      } else {
+        setSearchOptions(options);
+      }
+      // ----------------------------------------------
 
     } catch (error) {
       console.error("Lỗi tìm kiếm:", error);
+      // Nếu lỗi cũng hiện No Data cho user biết
+      setSearchOptions([{
+         value: 'error',
+         label: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Lỗi tìm kiếm" />,
+         disabled: true
+      }]);
     } finally {
       setSearching(false);
     }

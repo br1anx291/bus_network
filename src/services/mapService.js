@@ -2,40 +2,55 @@ import pb from '~/api/pocketbase';
 
 export const mapService = {
   
-  getBusLocations: async () => {
+getBusLocations: async (routeId = null) => {
     try {
-      const records = await pb.collection('bus_locations').getFullList({
-        sort: '-created', 
-        filter: "buses != '' ", 
-        expand: 'buses.driver,buses.current_route', 
-      });
-
-      const uniqueBusMap = new Map();
-
-      for (const rec of records) {
-        const busInfo = rec.expand?.buses;
-        if (!busInfo) continue;
-
-        const busId = busInfo.id;
-        if (!uniqueBusMap.has(busId)) {
-          uniqueBusMap.set(busId, rec);
-        }
+      console.log("DEBUG - Route ID nhận được:", routeId);
+      let busFilter = 'status != "stopped"';
+      
+      if (routeId) {
+        busFilter += ` && current_route = '${routeId}'`;
       }
-
-      return Array.from(uniqueBusMap.values()).map(rec => {
-        const busInfo = rec.expand?.buses;
-        return {
-          locationId: rec.id,       
-          busId: busInfo.id,        
-          lat: rec.latitude,
-          lng: rec.longitude,
-          plate: busInfo.license_plate, 
-          status: busInfo.status,       
-          driver: busInfo.expand?.driver.name,
-          route: busInfo.expand?.current_route.name,
-          updatedAt: rec.updated
-        };
+      console.log("DEBUG - Câu lệnh Filter:", busFilter);
+      const buses = await pb.collection('buses').getFullList({
+        filter: busFilter,
+        expand: 'driver,current_route',
       });
+      console.log(`DEBUG - Tìm thấy ${buses.length} xe thuộc tuyến này`);
+
+      if (!buses.length) return [];
+
+      const locationPromises = buses.map(async (bus) => {
+        try {
+          const location = await pb.collection('bus_locations').getFirstListItem(
+            `buses = "${bus.id}"`, 
+            {
+              sort: '-created',
+            }
+          );
+
+          return {
+            locationId: location.id,
+            busId: bus.id,
+            lat: location.latitude,
+            lng: location.longitude,
+            plate: bus.license_plate,
+            status: bus.status,
+            driver: bus.expand?.driver?.name,
+            route: bus.expand?.current_route?.name,
+            updatedAt: location.updated
+          };
+        } catch (err) {
+          return null; 
+        }
+      });
+
+      const results = await Promise.allSettled(locationPromises);
+      
+      const finalData = results
+        .filter(res => res.status === 'fulfilled' && res.value !== null)
+        .map(res => res.value);
+
+      return finalData;
 
     } catch (error) {
       console.error("[MapService] Lỗi lấy vị trí xe:", error);

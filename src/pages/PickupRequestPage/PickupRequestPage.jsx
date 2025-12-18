@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Flex, Typography, message, Button, Tabs } from 'antd';
-import { ReloadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Flex, Typography, message, Button, Tabs, Input } from 'antd';
+import { ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 
 import PickupRequestTable from '~/features/pickupRequests/components/PickupRequestTable/PickupRequestTable';
 import { pickupRequestService } from '~/services/pickupRequestService';
@@ -28,39 +28,30 @@ const PickupRequestPage = () => {
   const [loading, setLoading] = useState(false);
   
   const [activeTab, setActiveTab] = useState('pending'); 
+  const [searchText, setSearchText] = useState('');
 
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10,
-    total: 0,
+    showSizeChanger: true, 
+    pageSizeOptions: ['10', '20', '50']
   });
 
-  const fetchData = async (
-    page = pagination.current, 
-    pageSize = pagination.pageSize, 
-    currentTab = activeTab 
-  ) => {
+  const fetchData = async () => {
     setLoading(true);
     try {
       let statusParam = '';
+      if (activeTab === 'pending') statusParam = 'pending';
+      else if (activeTab === 'accepted') statusParam = 'accepted';
+      else if (activeTab === 'history') statusParam = '';
       
-      if (currentTab === 'pending') statusParam = 'pending';
-      else if (currentTab === 'accepted') statusParam = 'accepted';
-      else if (currentTab === 'history') statusParam = '';
-      
-      const result = await pickupRequestService.getAll(page, pageSize, statusParam);
+      const result = await pickupRequestService.getAll(1, 1000, statusParam);
       
       const list = result.data || [];
-      const totalCount = result.total || 0;
-
+      
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
       
       setData(mappedData);
-      setPagination({
-        ...pagination,
-        current: page,
-        total: totalCount,
-      });
     } catch (error) {
       console.error(error);
       message.error('Lỗi khi tải danh sách yêu cầu đón!');
@@ -70,14 +61,45 @@ const PickupRequestPage = () => {
   };
 
   useEffect(() => {
-    const newPagination = { ...pagination, current: 1 };
-    setPagination(newPagination);
-    fetchData(1, newPagination.pageSize, activeTab);
+    setSearchText('');
+    setPagination(prev => ({ ...prev, current: 1 }));
+    fetchData();
   }, [activeTab]);
 
-  const handleTableChange = (newPagination) => {
-    fetchData(newPagination.current, newPagination.pageSize, activeTab);
+  const STATUS_DICT = {
+    'pending': 'chờ duyệt',
+    'accepted': 'đã duyệt',
+    'rejected': 'từ chối',
+    'canceled': 'đã hủy',
+    'completed': 'hoàn thành'
   };
+
+  const filteredData = useMemo(() => {
+    if (!searchText) return data;
+
+    const lowerText = searchText.toLowerCase().trim();
+
+    return data.filter((item) => {
+      const userName = (item.userName || '').toLowerCase();
+      const userPhone = String(item.userPhone || '').toLowerCase();
+      const stationName = (item.stationName || '').toLowerCase();
+      const stationAddress = (item.stationAddress || '').toLowerCase();
+      const busPlate = (item.busPlate || '').toLowerCase();
+      
+      const statusEng = (item.status || '').toLowerCase();
+      const statusViet = STATUS_DICT[statusEng] || '';
+
+      return (
+        userName.includes(lowerText) ||
+        userPhone.includes(lowerText) ||
+        stationName.includes(lowerText) ||
+        stationAddress.includes(lowerText) ||
+        busPlate.includes(lowerText) ||
+        statusEng.includes(lowerText) ||
+        statusViet.includes(lowerText)
+      );
+    });
+  }, [data, searchText]);
 
   const handleTabChange = (key) => {
     setActiveTab(key);
@@ -100,10 +122,11 @@ const PickupRequestPage = () => {
       };
       message.success(`Đã ${actionMap[newStatus] || 'cập nhật'} yêu cầu thành công!`);
 
+      fetchData(); 
+
     } catch (error) {
       console.error(error);
       message.error('Lỗi khi cập nhật trạng thái!');
-      fetchData(pagination.current, pagination.pageSize, activeTab);
     } finally {
       setLoading(false);
     }
@@ -120,13 +143,26 @@ const PickupRequestPage = () => {
           Quản lý Yêu cầu đón
         </Title>
         
-        <Button 
-          icon={<ReloadOutlined />} 
-          onClick={() => fetchData(pagination.current, pagination.pageSize, activeTab)}
-          loading={loading}
-        >
-          Làm mới
-        </Button>
+        <Flex gap="small">
+            <Input.Search
+                placeholder="Tìm khách, SĐT, trạm..."
+                allowClear
+                value={searchText}
+                onChange={(e) => setSearchText(e.target.value)}
+                style={{ width: 280 }}
+                enterButton={<SearchOutlined />}
+            />
+            <Button 
+            icon={<ReloadOutlined />} 
+            onClick={() => {
+                setSearchText('');
+                fetchData();
+            }}
+            loading={loading}
+            >
+            Làm mới
+            </Button>
+        </Flex>
       </Flex>
 
       <Tabs 
@@ -138,10 +174,19 @@ const PickupRequestPage = () => {
       />
 
       <PickupRequestTable 
-        data={data}
+        data={filteredData}
         loading={loading}
-        pagination={pagination}
-        onTableChange={handleTableChange}
+        pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: filteredData.length,
+            showSizeChanger: true,
+            pageSizeOptions: pagination.pageSizeOptions,
+            onChange: (page, pageSize) => {
+                setPagination({ ...pagination, current: page, pageSize });
+            }
+        }}
+        onTableChange={() => {}}
 
         onApprove={handleApprove} 
         onDeny={handleDeny}

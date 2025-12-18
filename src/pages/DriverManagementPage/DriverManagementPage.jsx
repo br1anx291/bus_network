@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Button, Flex, Typography, message, Input } from 'antd';
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
 import DriverTable from '~/features/drivers/components/DriverTable/DriverTable';
 import DriverFormModal from '~/features/drivers/components/DriverFormModal/DriverFormModal';
 import { driverService } from '~/services/driverService';
@@ -11,27 +11,25 @@ const { Title } = Typography;
 const DriverManagementPage = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  
+  const [searchText, setSearchText] = useState('');
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 7,
-    total: 0,
+    showSizeChanger: true, 
+    pageSizeOptions: ['7', '10', '20', '50']
   });
 
-  const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const result = await driverService.getAll(page, pageSize);
+      const result = await driverService.getAll(1, 1000);
       
       const list = result.data || result || [];
-      const totalCount = result.total || list.length || 0;
-
+      
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
       setData(mappedData);
-      setPagination({
-        ...pagination,
-        current: page,
-        total: totalCount,
-      });
     } catch (error) {
       message.error('Lỗi khi tải danh sách tài xế!');
     } finally {
@@ -43,15 +41,42 @@ const DriverManagementPage = () => {
     fetchData();
   }, []);
 
-  const handleTableChange = (newPagination) => {
-    fetchData(newPagination.current, newPagination.pageSize);
+  const STATUS_DICT = {
+    'active': 'đang làm việc',
+    'off': 'nghỉ ca',
+    'leave': 'nghỉ phép'
   };
+
+  const filteredData = useMemo(() => {
+    if (!searchText) return data;
+
+    const lowerText = searchText.toLowerCase().trim();
+
+    return data.filter((item) => {
+      const name = String(item.name || '').toLowerCase();
+      const email = String(item.email || '').toLowerCase();
+      const phone = String(item.phone || '').toLowerCase();
+      const licenseNumber = String(item.licenseNumber || '').toLowerCase();
+      
+      const statusEng = String(item.status || '').toLowerCase();
+      const statusViet = STATUS_DICT[statusEng] || '';
+
+      return (
+        name.includes(lowerText) ||
+        email.includes(lowerText) ||
+        phone.includes(lowerText) ||
+        licenseNumber.includes(lowerText) ||
+        statusEng.includes(lowerText) ||
+        statusViet.includes(lowerText)
+      );
+    });
+  }, [data, searchText]);
 
   const handleDelete = async (id) => {
     try {
       await driverService.delete(id); 
       message.success('Xóa tài xế thành công!'); 
-      fetchData(pagination.current, pagination.pageSize);
+      fetchData();
     } catch (error) {
       message.error('Lỗi khi xóa tài xế!');
     }
@@ -87,9 +112,20 @@ const DriverManagementPage = () => {
         </Title>
 
         <Flex gap="small">
+          <Input.Search
+            placeholder="Tìm tên, email, bằng lái..."
+            allowClear
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 280 }}
+            enterButton={<SearchOutlined />}
+          />
+
           <Button 
             icon={<ReloadOutlined />} 
-            onClick={() => fetchData()} 
+            onClick={() => {
+                setSearchText('');
+                fetchData();
+            }} 
             loading={loading}
           >
             Làm mới
@@ -106,10 +142,19 @@ const DriverManagementPage = () => {
       </Flex>
 
       <DriverTable 
-        data={data}
+        data={filteredData}
         loading={loading}
-        pagination={pagination}
-        onTableChange={handleTableChange}
+        pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: filteredData.length,
+            showSizeChanger: true,
+            pageSizeOptions: pagination.pageSizeOptions,
+            onChange: (page, pageSize) => {
+                setPagination({ ...pagination, current: page, pageSize });
+            }
+        }}
+        onTableChange={() => {}}
         onEdit={handleOpenEditModal}
         onDelete={handleDelete}
       />

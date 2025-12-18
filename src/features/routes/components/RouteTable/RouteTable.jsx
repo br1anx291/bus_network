@@ -5,9 +5,9 @@ import { EditOutlined, DeleteOutlined, CompassOutlined, UnorderedListOutlined } 
 import styles from './RouteTable.module.css';
   
 const STATUS_MAP = {
-  'active': { text: 'HOẠT ĐỘNG', color: 'green' },
+  'active': { text: 'ĐANG HOẠT ĐỘNG', color: 'green' },
   'maintenance': { text: 'BẢO TRÌ', color: 'orange' },
-  'stopped': { text: 'NGỪNG', color: 'red' },
+  'stopped': { text: 'TẠM NGƯNG', color: 'red' },
   'default': { text: 'KHÔNG RÕ', color: 'default' }
 };
 

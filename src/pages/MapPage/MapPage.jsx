@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Flex, Select, Input, message, Tag } from 'antd';
 import Map, { Marker, Popup, NavigationControl, FullscreenControl, Source, Layer } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css'; 
@@ -18,7 +18,6 @@ const ensureLngLat = (coord) => {
   }
   return coord;
 };
-
 
 const isValidCoordinate = (lat, lng) => {
   const validLat = Number.isFinite(lat) && lat >= -90 && lat <= 90;
@@ -157,15 +156,16 @@ const MapPage = () => {
         setStations(stationRes.data || []);
         setRoutes(routeRes.data || []);
       } catch (error) {
-        message.error("Lỗi tải dữ liệu");
+        message.error("Lỗi tải dữ liệu nền");
       }
     };
     fetchBaseData();
   }, []);
 
-  const fetchBusLocations = async () => {
+  
+  const fetchBusLocations = useCallback(async (currentRouteId) => {
     try {
-      const locations = await mapService.getBusLocations();
+      const locations = await mapService.getBusLocations(currentRouteId);
       
       const mappedLocations = locations.map(rec => {
         const busInfo = rec.expand?.buses || {};
@@ -185,16 +185,21 @@ const MapPage = () => {
 
       setBusLocations(mappedLocations);
     } catch (error) { console.error("Lỗi fetch bus:", error); }
-  };
-
-  useEffect(() => {
-    fetchBusLocations();
-    const interval = setInterval(fetchBusLocations, 10000);
-    return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    fetchBusLocations(selectedRouteId);
+
+    const interval = setInterval(() => {
+      fetchBusLocations(selectedRouteId);
+    }, 10000); // 10 giây update 1 lần
+
+    return () => clearInterval(interval);
+  }, [selectedRouteId, fetchBusLocations]);
+
   const handleRouteChange = async (routeId) => {
-    setSelectedRouteId(routeId);
+    console.log("MapPage - User chọn tuyến ID:", routeId);
+    setSelectedRouteId(routeId); 
     
     if (!routeId) {
       setRoutePolyline(null);
@@ -203,13 +208,11 @@ const MapPage = () => {
       const selectedRoute = routes.find(r => r.id === routeId);
       
       if (selectedRoute?.path && selectedRoute.path.length > 0) {
-
         let rawPath = selectedRoute.path;
         if (typeof rawPath === 'string') {
             try { rawPath = JSON.parse(rawPath); } catch(e) {}
         }
 
-        
         const isMultiLine = Array.isArray(rawPath[0]) && Array.isArray(rawPath[0][0]);
         let correctedCoordinates;
         let geometryType;
@@ -231,20 +234,17 @@ const MapPage = () => {
               coordinates: correctedCoordinates 
           }
         });
-
       } else {
         setRoutePolyline(null);
         message.info("Tuyến này chưa có dữ liệu bản đồ");
       }
-    }
 
-    try {
-      if (routeId) {
+      try {
           const stationIds = await routeService.getStationsByRoute(routeId);
           setRouteStationIds(stationIds);
+      } catch (error) {
+          console.error(error);
       }
-    } catch (error) {
-      console.error(error);
     }
   };
 
@@ -259,11 +259,14 @@ const MapPage = () => {
   const filteredBuses = useMemo(() => {
     return busLocations.filter(bus => {
       if (!bus.lat || !bus.lng && (!bus.lat && !bus.lng)) return false; 
+      
       if (selectedStatus && bus.status !== selectedStatus) return false;
+      
       if (searchPlate && !bus.plate.toLowerCase().includes(searchPlate)) return false;
+      
       return true;
     });
-  }, [busLocations, selectedRouteId, selectedStatus, searchPlate]);
+  }, [busLocations, selectedStatus, searchPlate]);
 
   const filteredStations = useMemo(() => {
     if (!selectedRouteId) return stations;

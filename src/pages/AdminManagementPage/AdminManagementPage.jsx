@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Button, Flex, Typography, message } from 'antd';
-import { PlusOutlined, ReloadOutlined } from '@ant-design/icons'; 
+import React, { useState, useEffect, useMemo } from 'react';
+import { Button, Flex, Typography, message, Input } from 'antd';
+import { PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons'; 
 import AdminTable from '~/features/admins/components/AdminTable/AdminTable';
 import AdminFormModal from '~/features/admins/components/AdminFormModal/AdminFormModal';
 import { adminService } from '~/services/adminService';
@@ -12,28 +12,25 @@ const AdminManagementPage = () => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   
+  const [searchText, setSearchText] = useState('');
+
   const [pagination, setPagination] = useState({
     current: 1,
     pageSize: 10, 
-    total: 0,
+    showSizeChanger: true,
+    pageSizeOptions: ['10', '20', '50']
   });
 
-  const fetchData = async (page = pagination.current, pageSize = pagination.pageSize) => {
+  const fetchData = async () => {
     setLoading(true);
     try {
-      const result = await adminService.getAll(page, pageSize);
+      const result = await adminService.getAll(1, 1000);
       
       const list = result.data || [];
-      const totalCount = result.total || 0;
 
       const mappedData = list.map((item) => ({ ...item, key: item.id }));
       
       setData(mappedData);
-      setPagination({
-        ...pagination,
-        current: page,
-        total: totalCount,
-      });
     } catch (error) {
       console.error(error);
       message.error('Lỗi khi tải danh sách người dùng!');
@@ -46,15 +43,53 @@ const AdminManagementPage = () => {
     fetchData();
   }, []);
 
-  const handleTableChange = (newPagination) => {
-    fetchData(newPagination.current, newPagination.pageSize);
+  const ROLE_DICT = {
+    'superadmin': 'quản trị viên',
+    'staff': 'nhân viên',
+    'manager': 'quản lý'
   };
+
+  const STATUS_DICT = {
+    'active': 'Đã xác thực',
+    'pending': 'chưa xác thực',
+    'blocked': 'bị khóa'
+  };
+
+  const filteredData = useMemo(() => {
+    if (!searchText) return data;
+
+    const lowerText = searchText.toLowerCase().trim();
+
+    return data.filter((item) => {
+      const name = String(item.name || '').toLowerCase();
+      const username = String(item.username || '').toLowerCase();
+      const email = String(item.email || '').toLowerCase();
+      const phoneNumber = String(item.phoneNumber || '').toLowerCase();
+      
+      const roleEng = String(item.role || '').toLowerCase();
+      const roleViet = ROLE_DICT[roleEng] || '';
+
+      const statusEng = String(item.status || '').toLowerCase();
+      const statusViet = STATUS_DICT[statusEng] || '';
+
+      return (
+        name.includes(lowerText) ||
+        username.includes(lowerText) ||
+        email.includes(lowerText) ||
+        phoneNumber.includes(lowerText) ||
+        roleEng.includes(lowerText) ||
+        roleViet.includes(lowerText) ||
+        statusEng.includes(lowerText) ||
+        statusViet.includes(lowerText)
+      );
+    });
+  }, [data, searchText]);
 
   const handleDelete = async (id) => {
     try {
       await adminService.delete(id); 
       message.success('Xóa người dùng thành công!'); 
-      fetchData(pagination.current, pagination.pageSize);
+      fetchData(); 
     } catch (error) {
       message.error('Lỗi khi xóa người dùng!');
     }
@@ -90,9 +125,20 @@ const AdminManagementPage = () => {
         </Title>
         
         <Flex gap="small">
+          <Input.Search
+            placeholder="Tìm tên, email, sđt, quyền..."
+            allowClear
+            onChange={(e) => setSearchText(e.target.value)}
+            style={{ width: 280 }}
+            enterButton={<SearchOutlined />}
+          />
+
           <Button 
             icon={<ReloadOutlined />} 
-            onClick={() => fetchData()} 
+            onClick={() => {
+                setSearchText('');
+                fetchData();
+            }} 
             loading={loading}
           >
             Làm mới
@@ -110,10 +156,21 @@ const AdminManagementPage = () => {
       </Flex>
 
       <AdminTable 
-        data={data}
+        data={filteredData}
         loading={loading}
-        pagination={pagination}
-        onTableChange={handleTableChange}
+        
+        pagination={{
+            current: pagination.current,
+            pageSize: pagination.pageSize,
+            total: filteredData.length,
+            showSizeChanger: true,
+            pageSizeOptions: pagination.pageSizeOptions,
+            onChange: (page, pageSize) => {
+                setPagination({ ...pagination, current: page, pageSize });
+            }
+        }}
+
+        onTableChange={() => {}}
         onEdit={handleOpenEditModal}
         onDelete={handleDelete}
       />
