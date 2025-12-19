@@ -82,14 +82,12 @@ const fetchSearchResults = async (searchText) => {
 
     setSearching(true);
     try {
-      // 1. Gọi API song song (Giữ nguyên logic sửa lỗi trạm ở bước trước)
       const [vehiclesRes, routesRes, stationsRes] = await Promise.all([
         vehicleService.getAll(1, 5, { search: searchText }).catch(() => ({ data: [] })),
         routeService.getAll(1, 5, { search: searchText }).catch(() => ({ data: [] })),
         stationService.getAll(1, 5, { search: searchText }).catch(() => ({ items: [] }))
       ]);
 
-      // 2. Map dữ liệu (Giữ nguyên)
       const vehicleOptions = (vehiclesRes.data || []).map(v => ({
         value: v.plate,
         key: `v-${v.id}`,
@@ -126,7 +124,6 @@ const fetchSearchResults = async (searchText) => {
         link: `/van-hanh/quan-ly-tram?search=${encodeURIComponent(s.name)}`,
       }));
 
-      // 3. Gộp các nhóm kết quả
       const options = [
         { 
           label: <Text strong style={{ padding: '8px 12px', display: 'block', background: '#f5f5f5' }}>Phương tiện</Text>, 
@@ -163,7 +160,6 @@ const fetchSearchResults = async (searchText) => {
 
     } catch (error) {
       console.error("Lỗi tìm kiếm:", error);
-      // Nếu lỗi cũng hiện No Data cho user biết
       setSearchOptions([{
          value: 'error',
          label: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Lỗi tìm kiếm" />,

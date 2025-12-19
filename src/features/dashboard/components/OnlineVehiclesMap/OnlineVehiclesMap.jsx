@@ -1,4 +1,3 @@
-// src/components/Dashboard/OnlineVehiclesMap.jsx
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import MapGL, { Popup, NavigationControl, FullscreenControl } from 'react-map-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
@@ -169,7 +168,7 @@ const OnlineVehiclesMap = () => {
              Xe trực tuyến ({busLocations.length})
            </Title>
            <span style={{fontSize: '12px', color: '#888', fontWeight: 'normal'}}>
-             {loading ? 'Đang tải...' : `(Active Logs: ${rawCount})`}
+             {/* {loading ? 'Đang tải...' : `(Active Logs: ${rawCount})`} */}
            </span>
         </div>
       }
