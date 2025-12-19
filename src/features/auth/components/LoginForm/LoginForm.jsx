@@ -58,9 +58,9 @@ const LoginForm = () => {
         disabled={isLoading} 
       >
         <Form.Item
-          label="Tên tài khoản hoặc địa chỉ Email"
+          label="Nhập địa chỉ Email"
           name="email"
-          rules={[{ required: true, message: 'Vui lòng nhập email!' }]}
+          rules={[{ required: true, message: 'Vui lòng nhập địa chỉ Email!' }]}
         >
           <Input 
             prefix={<UserOutlined />} 

@@ -22,6 +22,7 @@ const RegisterForm = () => {
       lastName: values.lastName,
       email: values.email,
       password: values.password,
+      passwordConfirm: values.confirmPassword,
     };
 
     try {
